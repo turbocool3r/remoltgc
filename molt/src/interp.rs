@@ -551,11 +551,7 @@ impl Command {
 
     /// Returns true if the command is a proc, and false otherwise.
     fn is_proc(&self) -> bool {
-        if let Command::Proc(_) = self {
-            true
-        } else {
-            false
-        }
+        matches!(self, Command::Proc(_))
     }
 }
 
@@ -2288,7 +2284,7 @@ impl Procedure {
                 msg.push('?');
             }
         }
-        msg.push_str("\"");
+        msg.push('\"');
 
         molt_err!(&msg)
     }

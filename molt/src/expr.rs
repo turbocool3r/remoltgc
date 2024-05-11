@@ -261,7 +261,7 @@ pub fn expr(interp: &mut Interp, expr: &Value) -> MoltResult {
 // Expression Internals
 
 /// Provides top-level functionality shared by molt_expr_string, molt_expr_int, etc.
-fn expr_top_level<'a>(interp: &mut Interp, string: &'a str) -> DatumResult {
+fn expr_top_level(interp: &mut Interp, string: &str) -> DatumResult {
     let info = &mut ExprInfo::new(string);
 
     let result = expr_get_value(interp, info, -1);
@@ -293,7 +293,7 @@ fn expr_top_level<'a>(interp: &mut Interp, string: &'a str) -> DatumResult {
 #[allow(clippy::collapsible_if)]
 #[allow(clippy::cognitive_complexity)]
 #[allow(clippy::float_cmp)]
-fn expr_get_value<'a>(interp: &mut Interp, info: &'a mut ExprInfo, prec: i32) -> DatumResult {
+fn expr_get_value(interp: &mut Interp, info: &mut ExprInfo, prec: i32) -> DatumResult {
     // There are two phases to this procedure.  First, pick off an initial value.
     // Then, parse (binary operator, value) pairs until done.
     let mut got_op = false;
@@ -398,7 +398,7 @@ fn expr_get_value<'a>(interp: &mut Interp, info: &'a mut ExprInfo, prec: i32) ->
         operator = info.token;
         // ??? value2.pv.next = value2.pv.buffer;
 
-        if operator < MULT || operator >= UNARY_MINUS {
+        if !(MULT..UNARY_MINUS).contains(&operator) {
             if operator == END || operator == CLOSE_PAREN || operator == COMMA {
                 return Ok(value);
             } else {
@@ -1040,7 +1040,7 @@ fn expr_lex(interp: &mut Interp, info: &mut ExprInfo) -> DatumResult {
         Some(_) => {
             if p.has(|c| c.is_alphabetic()) {
                 let mut str = String::new();
-                while p.has(|c| c.is_alphabetic() || c.is_digit(10)) {
+                while p.has(|c| c.is_alphabetic() || c.is_ascii_digit()) {
                     str.push(p.next().unwrap());
                 }
 
@@ -1338,7 +1338,7 @@ fn expr_as_str(value: Datum) -> Datum {
 }
 
 // Distinguished between decimal integers and floating-point values
-fn expr_looks_like_int<'a>(ptr: &Tokenizer<'a>) -> bool {
+fn expr_looks_like_int(ptr: &Tokenizer<'_>) -> bool {
     // FIRST, skip whitespace
     let mut p = ptr.clone();
     p.skip_while(|c| c.is_whitespace());
@@ -1347,12 +1347,12 @@ fn expr_looks_like_int<'a>(ptr: &Tokenizer<'a>) -> bool {
         p.skip();
     }
 
-    if !p.has(|ch| ch.is_digit(10)) {
+    if !p.has(|ch| ch.is_ascii_digit()) {
         return false;
     }
     p.skip();
 
-    while p.has(|ch| ch.is_digit(10)) {
+    while p.has(|ch| ch.is_ascii_digit()) {
         p.skip();
     }
 

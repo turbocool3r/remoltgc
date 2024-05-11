@@ -205,7 +205,7 @@ impl<'a> Tokenizer<'a> {
 
                     // Note: only works because these digits are single bytes.
                     // TODO: count instead.
-                    while self.has(|ch| ch.is_digit(16)) && self.index - mark < max {
+                    while self.has(|ch| ch.is_ascii_hexdigit()) && self.index - mark < max {
                         self.next();
                     }
 
@@ -215,7 +215,7 @@ impl<'a> Tokenizer<'a> {
 
                     let hex = &self.input[mark..self.index];
 
-                    let val = u32::from_str_radix(&hex, 16).unwrap();
+                    let val = u32::from_str_radix(hex, 16).unwrap();
                     if let Some(ch) = std::char::from_u32(val) {
                         ch
                     } else {

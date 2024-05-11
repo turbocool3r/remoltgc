@@ -110,7 +110,7 @@ pub fn read_float(ptr: &mut Tokenizer) -> Option<String> {
     }
 
     // NEXT, get any integer digits
-    while p.has(|ch| ch.is_digit(10)) {
+    while p.has(|ch| ch.is_ascii_digit()) {
         missing_mantissa = false;
         result.push(p.next().unwrap());
     }
@@ -119,7 +119,7 @@ pub fn read_float(ptr: &mut Tokenizer) -> Option<String> {
     if p.is('.') {
         result.push(p.next().unwrap());
 
-        while p.has(|ch| ch.is_digit(10)) {
+        while p.has(|ch| ch.is_ascii_digit()) {
             missing_mantissa = false;
             result.push(p.next().unwrap());
         }
@@ -134,7 +134,7 @@ pub fn read_float(ptr: &mut Tokenizer) -> Option<String> {
             result.push(p.next().unwrap());
         }
 
-        while p.has(|ch| ch.is_digit(10)) {
+        while p.has(|ch| ch.is_ascii_digit()) {
             missing_exponent = false;
             result.push(p.next().unwrap());
         }

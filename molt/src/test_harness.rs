@@ -66,6 +66,7 @@ use std::path::PathBuf;
 /// }
 /// ```
 
+#[allow(clippy::result_unit_err)]
 pub fn test_harness(interp: &mut Interp, args: &[String]) -> Result<(), ()> {
     // FIRST, announce who we are.
     println!("Molt {} -- Test Harness", env!("CARGO_PKG_VERSION"));
@@ -180,13 +181,13 @@ impl TestInfo {
 
     fn print_failure(&self, got_code: &str, received: &str) {
         println!("\n*** FAILED {} {}", self.name, self.description);
-        println!("Expected {} <{}>", self.code.to_string(), self.expect);
+        println!("Expected {} <{}>", self.code, self.expect);
         println!("Received {} <{}>", got_code, received);
     }
 
     fn print_error(&self, result: &MoltResult) {
         println!("\n*** ERROR {} {}", self.name, self.description);
-        println!("Expected {} <{}>", self.code.to_string(), self.expect);
+        println!("Expected {} <{}>", self.code, self.expect);
 
         match result {
             Ok(val) => println!("Received -ok <{}>", val),

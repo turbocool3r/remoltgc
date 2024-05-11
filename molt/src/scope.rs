@@ -41,11 +41,7 @@ enum Var {
 impl Var {
     /// This is an upvar'd variable?
     fn is_upvar(&self) -> bool {
-        if let Var::Upvar(_) = self {
-            true
-        } else {
-            false
-        }
+        matches!(self, Var::Upvar(_))
     }
 }
 
@@ -306,10 +302,7 @@ impl ScopeStack {
 
     /// Determines whether the name names an array variable or not.
     pub fn array_exists(&self, name: &str) -> bool {
-        match self.var(self.current(), name) {
-            Some(Var::Array(_)) => true,
-            _ => false,
-        }
+        matches!(self.var(self.current(), name), Some(Var::Array(_)))
     }
 
     /// Gets a list of the array indices for the named array.  Returns the empty list
@@ -366,14 +359,14 @@ impl ScopeStack {
             Some(Var::Scalar(_)) => molt_err!("can't array set \"{}\": variable isn't array", name),
             Some(Var::Array(map)) => {
                 // It was already an array; just add the new elements.
-                insert_kvlist(map, &kvlist);
+                insert_kvlist(map, kvlist);
                 Ok(())
             }
             Some(var) => {
                 assert_eq!(*var, Var::New);
                 // Create new variable on the top of the stack.
                 let mut map = HashMap::new();
-                insert_kvlist(&mut map, &kvlist);
+                insert_kvlist(&mut map, kvlist);
                 *var = Var::Array(map);
                 Ok(())
             }

@@ -645,7 +645,7 @@ impl Value {
     /// # }
     /// ```
     pub fn to_dict(&self) -> Result<MoltDict, Exception> {
-        Ok((&*self.as_dict()?).to_owned())
+        Ok((*self.as_dict()?).to_owned())
     }
 
     /// Tries to return the `Value` as a `MoltInt`, parsing the
@@ -716,8 +716,8 @@ impl Value {
             arg = &arg[1..];
         }
 
-        let parse_result = if arg.starts_with("0x") {
-            MoltInt::from_str_radix(&arg[2..], 16)
+        let parse_result = if let Some(rest) = arg.strip_prefix("0x") {
+            MoltInt::from_str_radix(rest, 16)
         } else {
             arg.parse::<MoltInt>()
         };
@@ -869,7 +869,7 @@ impl Value {
     /// # }
     /// ```
     pub fn to_list(&self) -> Result<MoltList, Exception> {
-        Ok((&*self.as_list()?).to_owned())
+        Ok((*self.as_list()?).to_owned())
     }
 
     /// Tries to return the `Value` as an `Rc<Script>`, parsing the
@@ -1165,10 +1165,10 @@ impl Display for DataRep {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match self {
             DataRep::Bool(flag) => write!(f, "{}", if *flag { 1 } else { 0 }),
-            DataRep::Dict(dict) => write!(f, "{}", dict_to_string(&*dict)),
+            DataRep::Dict(dict) => write!(f, "{}", dict_to_string(dict)),
             DataRep::Int(int) => write!(f, "{}", int),
             DataRep::Flt(flt) => Value::fmt_float(f, *flt),
-            DataRep::List(list) => write!(f, "{}", list_to_string(&*list)),
+            DataRep::List(list) => write!(f, "{}", list_to_string(list)),
             DataRep::Script(script) => write!(f, "{:?}", script),
             DataRep::VarName(var_name) => write!(f, "{:?}", var_name),
             DataRep::Other(other) => write!(f, "{}", other),
@@ -1535,6 +1535,7 @@ mod tests {
     // Sample external type, used for testing.
 
     #[derive(Debug, PartialEq, Copy, Clone)]
+    #[allow(clippy::upper_case_acronyms)]
     pub enum Flavor {
         SALTY,
         SWEET,

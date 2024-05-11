@@ -24,8 +24,8 @@ pub fn cmd_append(interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResu
     // start with the empty string.
     let mut new_string: String = interp
         .var(&argv[1])
-        .and_then(|val| Ok(val.to_string()))
-        .unwrap_or_else(|_| String::new());
+        .map(|val| val.to_string())
+        .unwrap_or_default();
 
     // NEXT, append the remaining values to the string.
     for item in &argv[2..] {
@@ -80,12 +80,12 @@ pub fn cmd_array_set(interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltR
     let var_name = argv[2].as_var_name();
 
     if var_name.index().is_none() {
-        interp.array_set(var_name.name(), &*argv[3].as_list()?)
+        interp.array_set(var_name.name(), &argv[3].as_list()?)
     } else {
         // This line will create the array if it doesn't exist, and throw an error if the
         // named variable exists but isn't an array.  This is a little wacky, but it's
         // what TCL 8.6 does.
-        interp.array_set(var_name.name(), &*Value::empty().as_list()?)?;
+        interp.array_set(var_name.name(), &Value::empty().as_list()?)?;
 
         // And this line throws an error because the full name the caller specified is an
         // element, not the array itself.
@@ -275,7 +275,7 @@ fn cmd_dict_remove(_: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResult {
     check_args(2, argv, 3, 0, "dictionary ?key ...?")?;
 
     // FIRST, get and clone the dictionary, so we can modify it.
-    let mut dict = (&*argv[2].as_dict()?).clone();
+    let mut dict = (*argv[2].as_dict()?).clone();
 
     // NEXT, remove the given keys.
     for key in &argv[3..] {
@@ -443,10 +443,10 @@ pub fn cmd_foreach(interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltRes
     while i < list.len() {
         for var in var_list {
             if i < list.len() {
-                interp.set_var(&var, list[i].clone())?;
+                interp.set_var(var, list[i].clone())?;
                 i += 1;
             } else {
-                interp.set_var(&var, Value::empty())?;
+                interp.set_var(var, Value::empty())?;
             }
         }
 
@@ -567,17 +567,17 @@ pub fn cmd_if(interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResult {
     }
 
     if argi < argv.len() {
-        return molt_err!("wrong # args: extra words after \"else\" clause in \"if\" command");
+        molt_err!("wrong # args: extra words after \"else\" clause in \"if\" command")
     } else if wants == IfWants::Expr {
-        return molt_err!(
+        molt_err!(
             "wrong # args: no expression after \"{}\" argument",
             argv[argi - 1]
-        );
+        )
     } else if wants == IfWants::ThenBody || wants == IfWants::SkipThenClause {
-        return molt_err!(
+        molt_err!(
             "wrong # args: no script following after \"{}\" argument",
             argv[argi - 1]
-        );
+        )
     } else {
         // Looking for ElseBody, but there doesn't need to be one.
         molt_ok!() // temp
@@ -599,8 +599,8 @@ pub fn cmd_incr(interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResult
     let new_value = increment
         + interp
             .var(&argv[1])
-            .and_then(|val| Ok(val.as_int()?))
-            .unwrap_or_else(|_| 0);
+            .and_then(|val| val.as_int())
+            .unwrap_or(0);
 
     interp.set_var_return(&argv[1], new_value.into())
 }
@@ -627,19 +627,19 @@ const INFO_SUBCOMMANDS: [Subcommand; 11] = [
 /// # info args *procname*
 pub fn cmd_info_args(interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResult {
     check_args(2, argv, 3, 3, "procname")?;
-    interp.proc_args(&argv[2].as_str())
+    interp.proc_args(argv[2].as_str())
 }
 
 /// # info body *procname*
 pub fn cmd_info_body(interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResult {
     check_args(2, argv, 3, 3, "procname")?;
-    interp.proc_body(&argv[2].as_str())
+    interp.proc_body(argv[2].as_str())
 }
 
 /// # info cmdtype *command*
 pub fn cmd_info_cmdtype(interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResult {
     check_args(2, argv, 3, 3, "command")?;
-    interp.command_type(&argv[2].as_str())
+    interp.command_type(argv[2].as_str())
 }
 
 /// # info commands ?*pattern*?
@@ -651,7 +651,7 @@ pub fn cmd_info_commands(interp: &mut Interp, _: ContextID, _argv: &[Value]) -> 
 pub fn cmd_info_default(interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResult {
     check_args(2, argv, 5, 5, "procname arg varname")?;
 
-    if let Some(val) = interp.proc_default(&argv[2].as_str(), &argv[3].as_str())? {
+    if let Some(val) = interp.proc_default(argv[2].as_str(), argv[3].as_str())? {
         interp.set_var(&argv[4], val)?;
         molt_ok!(1)
     } else {
@@ -749,7 +749,7 @@ pub fn cmd_lindex(_interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltRes
     if argv.len() != 3 {
         lindex_into(&argv[1], &argv[2..])
     } else {
-        lindex_into(&argv[1], &*argv[2].as_list()?)
+        lindex_into(&argv[1], &argv[2].as_list()?)
     }
 }
 
@@ -1265,7 +1265,7 @@ pub fn cmd_string_map(_interp: &mut Interp, _: ContextID, argv: &[Value]) -> Mol
                 None => &string[i..],
             };
 
-            if haystack.starts_with(&from.as_str()) {
+            if haystack.starts_with(from.as_str()) {
                 matched = true;
 
                 result.push_str(to.as_str());
@@ -1368,10 +1368,7 @@ pub fn cmd_time(interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResult
     let start = Instant::now();
 
     for _i in 0..count {
-        let result = interp.eval_value(command);
-        if result.is_err() {
-            return result;
-        }
+        interp.eval_value(command)?;
     }
 
     let span = start.elapsed();

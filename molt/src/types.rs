@@ -822,7 +822,7 @@ impl VarName {
 
     /// Returns the parsed array index, if any.
     pub fn index(&self) -> Option<&str> {
-        self.index.as_ref().map(|x| &**x)
+        self.index.as_deref()
     }
 }
 
@@ -1005,7 +1005,7 @@ mod tests {
         assert_eq!(exception.level(), 1);
         assert_eq!(exception.next_code(), ResultCode::Okay);
         assert!(!exception.is_error());
-        assert!(!exception.error_data().is_some());
+        assert!(exception.error_data().is_none());
     }
 
     #[test]
@@ -1017,7 +1017,7 @@ mod tests {
         assert_eq!(exception.level(), 2);
         assert_eq!(exception.next_code(), ResultCode::Break);
         assert!(!exception.is_error());
-        assert!(!exception.error_data().is_some());
+        assert!(exception.error_data().is_none());
     }
 
     #[test]
@@ -1027,7 +1027,7 @@ mod tests {
         assert_eq!(exception.code(), ResultCode::Break);
         assert_eq!(exception.value(), "".into());
         assert!(!exception.is_error());
-        assert!(!exception.error_data().is_some());
+        assert!(exception.error_data().is_none());
     }
 
     #[test]
@@ -1037,6 +1037,6 @@ mod tests {
         assert_eq!(exception.code(), ResultCode::Continue);
         assert_eq!(exception.value(), "".into());
         assert!(!exception.is_error());
-        assert!(!exception.error_data().is_some());
+        assert!(exception.error_data().is_none());
     }
 }

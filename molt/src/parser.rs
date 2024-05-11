@@ -506,7 +506,7 @@ impl Tokens {
     /// accumulated, it is turned into a `Word` and pushed before the input word.
     fn push(&mut self, word: Word) {
         if self.got_string {
-            let string = std::mem::replace(&mut self.string, String::new());
+            let string = std::mem::take(&mut self.string);
             self.list.push(Word::String(string));
             self.got_string = false;
         }
@@ -537,7 +537,7 @@ impl Tokens {
             if self.list.is_empty() {
                 return Word::Value(Value::from(self.string));
             } else {
-                let string = std::mem::replace(&mut self.string, String::new());
+                let string = std::mem::take(&mut self.string);
                 self.list.push(Word::String(string));
             }
         }

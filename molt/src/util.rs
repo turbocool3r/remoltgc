@@ -8,7 +8,7 @@ use core::cmp::Ordering;
 use alloc::string::String;
 
 pub fn is_varname_char(ch: char) -> bool {
-    ch.is_alphanumeric() || ch == '_'
+    ch.is_ascii_alphanumeric() || ch == '_'
 }
 
 /// Reads the integer string from the head of the input.  If the function returns `Some`,

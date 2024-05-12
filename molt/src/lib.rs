@@ -170,13 +170,13 @@ mod tests {
     }
 
     // TODO: stopgap until we have finalized the MoltList API.
-    fn mklist(argv: &[&str]) -> MoltList {
+    fn mklist(argv: &[&'static str]) -> MoltList {
         argv.iter().map(|s| Value::from(*s)).collect()
     }
 
     // Helpers
 
-    fn assert_err<T: PartialEq + core::fmt::Debug>(result: &Result<T, Exception>, msg: &str) {
+    fn assert_err<T: PartialEq + core::fmt::Debug>(result: &Result<T, Exception>, msg: &'static str) {
         assert_eq!(molt_err!(msg), *result);
     }
 

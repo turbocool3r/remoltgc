@@ -126,7 +126,7 @@
 //!     type Err = String;
 //!
 //!     fn from_str(value: &str) -> Result<Self, Self::Err> {
-//!         let value = value.to_lowercase();
+//!         let value = value.to_ascii_lowercase();
 //!
 //!         if value == "salty" {
 //!             Ok(Flavor::SALTY)
@@ -189,6 +189,7 @@ use core::fmt::Debug;
 use core::fmt::Display;
 use core::hash::Hash;
 use core::hash::Hasher;
+use alloc::borrow::Cow;
 use alloc::rc::Rc;
 use alloc::boxed::Box;
 use alloc::string::{String, ToString as _};
@@ -222,7 +223,7 @@ impl Hash for Value {
 /// The inner value of a `Value`, to be wrapped in an `Rc<T>` so that `Values` can be shared.
 #[derive(Debug)]
 struct InnerValue {
-    string_rep: UnsafeCell<Option<String>>,
+    string_rep: UnsafeCell<Option<Cow<'static, str>>>,
     data_rep: RefCell<DataRep>,
 }
 
@@ -238,7 +239,7 @@ impl Debug for Value {
 
 impl Value {
     /// Creates a value whose `InnerValue` is defined by its string rep.
-    fn inner_from_string(str: String) -> Self {
+    fn inner_from_string(str: Cow<'static, str>) -> Self {
         let inner = InnerValue {
             string_rep: UnsafeCell::new(Some(str)),
             data_rep: RefCell::new(DataRep::None),
@@ -290,11 +291,11 @@ impl From<String> for Value {
     /// assert_eq!(value.as_str(), "My New String");
     /// ```
     fn from(str: String) -> Self {
-        Value::inner_from_string(str)
+        Value::inner_from_string(str.into())
     }
 }
 
-impl From<&str> for Value {
+impl From<&'static str> for Value {
     /// Creates a new `Value` from the given string slice.
     ///
     /// # Example
@@ -304,8 +305,8 @@ impl From<&str> for Value {
     /// let value = Value::from("My String Slice");
     /// assert_eq!(value.as_str(), "My String Slice");
     /// ```
-    fn from(str: &str) -> Self {
-        Value::inner_from_string(str.to_string())
+    fn from(str: &'static str) -> Self {
+        Value::inner_from_string(str.into())
     }
 }
 
@@ -320,7 +321,7 @@ impl From<&String> for Value {
     /// assert_eq!(value.as_str(), "My String Slice");
     /// ```
     fn from(str: &String) -> Self {
-        Value::inner_from_string(str.to_string())
+        Self::from(str.clone())
     }
 }
 
@@ -464,6 +465,10 @@ impl Value {
     /// assert_eq!(value.as_str(), "123");
     /// ```
     pub fn as_str(&self) -> &str {
+        &*self.as_cow_str()
+    }
+
+    pub fn as_cow_str(&self) -> &Cow<'static, str> {
         // FIRST, get the string rep, computing it from the data_rep if necessary.
         // self.inner.string_rep.get_or_init(|| (self.inner.data_rep.borrow()).to_string())
 
@@ -479,7 +484,7 @@ impl Value {
         // Thus, this is safe: as_str() is the only way to retrieve the string_rep,
         // and it computes the string_rep lazily after which it is immutable.
         let slot = unsafe { &mut *self.inner.string_rep.get() };
-        *slot = Some((self.inner.data_rep.borrow()).to_string());
+        *slot = Some((self.inner.data_rep.borrow()).to_string().into());
 
         slot.as_ref().expect("string rep")
     }
@@ -587,7 +592,7 @@ impl Value {
     /// ```
     pub fn get_bool(arg: &str) -> Result<bool, Exception> {
         let orig = arg;
-        let value: &str = &arg.trim().to_lowercase();
+        let value: &str = &arg.trim().to_ascii_lowercase();
         match value {
             "1" | "true" | "yes" | "on" => Ok(true),
             "0" | "false" | "no" | "off" => Ok(false),
@@ -802,7 +807,7 @@ impl Value {
     /// ```
     #[cfg(feature = "float")]
     pub fn get_float(arg: &str) -> Result<MoltFloat, Exception> {
-        let arg_trim = arg.trim().to_lowercase();
+        let arg_trim = arg.trim().to_ascii_lowercase();
 
         match arg_trim.parse::<MoltFloat>() {
             Ok(flt) => Ok(flt),
@@ -1576,7 +1581,7 @@ mod tests {
         type Err = String;
 
         fn from_str(value: &str) -> Result<Self, Self::Err> {
-            let value = value.to_lowercase();
+            let value = value.to_ascii_lowercase();
 
             if value == "salty" {
                 Ok(Flavor::SALTY)

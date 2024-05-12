@@ -5,7 +5,7 @@ use crate::tokenizer::Tokenizer;
 use crate::types::*;
 use crate::value::Value;
 
-use alloc::string::String;
+use alloc::string::{String, ToString as _};
 use alloc::vec::Vec;
 
 //--------------------------------------------------------------------------
@@ -94,7 +94,7 @@ fn parse_braced_item(ctx: &mut Tokenizer) -> MoltResult {
                 // We've found and consumed the closing brace.  We should either
                 // see more more whitespace, or we should be at the end of the list
                 // Otherwise, there are incorrect characters following the close-brace.
-                let result = Ok(Value::from(ctx.token(mark)));
+                let result = Ok(Value::from(ctx.token(mark).to_string()));
                 ctx.skip(); // Skip the closing brace
 
                 if ctx.at_end() || ctx.has(|ch| is_list_white(*ch)) {
@@ -216,7 +216,7 @@ fn escape_item(hash: bool, item: &str, out: &mut String) {
     }
 
     for ch in item.chars() {
-        if ch.is_whitespace() {
+        if ch.is_ascii_whitespace() {
             out.push('\\');
             out.push(ch);
             continue;
@@ -252,7 +252,7 @@ fn get_mode(word: &str) -> Mode {
     let mut iter = word.chars().peekable();
 
     while let Some(ch) = iter.next() {
-        if ch.is_whitespace() {
+        if ch.is_ascii_whitespace() {
             mode = Mode::Brace;
             continue;
         }

@@ -801,7 +801,7 @@ impl Interp {
     /// ```
 
     pub fn eval(&mut self, script: &str) -> MoltResult {
-        let value = Value::from(script);
+        let value = Value::from(script.to_owned());
         self.eval_value(&value)
     }
 

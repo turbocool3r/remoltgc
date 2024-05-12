@@ -206,14 +206,14 @@ mod tests {
         check_throw(molt_throw!("MYERR", "error {}", 5), "MYERR", "error 5");
     }
 
-    fn check_err(result: MoltResult, msg: &str) -> bool {
+    fn check_err(result: MoltResult, msg: &'static str) -> bool {
         match result {
             Err(exception) => exception.is_error() && exception.value() == msg.into(),
             _ => false,
         }
     }
 
-    fn check_throw(result: MoltResult, code: &str, msg: &str) -> bool {
+    fn check_throw(result: MoltResult, code: &'static str, msg: &'static str) -> bool {
         match result {
             Err(exception) => {
                 exception.is_error()

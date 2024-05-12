@@ -1081,8 +1081,8 @@ pub fn cmd_string_compare(_interp: &mut Interp, _: ContextID, argv: &[Value]) ->
         let val2 = &argv[arglen - 1];
 
         // TODO: *Not* the best way to do this; consider using the unicase crate.
-        let val1 = Value::from(val1.as_str().to_lowercase());
-        let val2 = Value::from(val2.as_str().to_lowercase());
+        let val1 = Value::from(val1.as_str().to_ascii_lowercase());
+        let val2 = Value::from(val2.as_str().to_ascii_lowercase());
 
         molt_opt_ok!(util::compare_len(val1.as_str(), val2.as_str(), length)?)
     } else {
@@ -1122,8 +1122,8 @@ pub fn cmd_string_equal(_interp: &mut Interp, _: ContextID, argv: &[Value]) -> M
         let val2 = &argv[arglen - 1];
 
         // TODO: *Not* the best way to do this; consider using the unicase crate.
-        let val1 = Value::from(val1.as_str().to_lowercase());
-        let val2 = Value::from(val2.as_str().to_lowercase());
+        let val1 = Value::from(val1.as_str().to_ascii_lowercase());
+        let val2 = Value::from(val2.as_str().to_ascii_lowercase());
 
         let flag = util::compare_len(val1.as_str(), val2.as_str(), length)? == 0;
         molt_opt_ok!(flag)
@@ -1243,7 +1243,7 @@ pub fn cmd_string_map(_interp: &mut Interp, _: ContextID, argv: &[Value]) -> Mol
         .iter()
         .map(|(k, v)| {
             let new_k = if nocase {
-                Value::from(k.as_str().to_lowercase())
+                Value::from(k.as_str().to_ascii_lowercase())
             } else {
                 k.clone()
             };
@@ -1256,7 +1256,7 @@ pub fn cmd_string_map(_interp: &mut Interp, _: ContextID, argv: &[Value]) -> Mol
         .collect::<Vec<_>>();
 
     let string_lower: Option<String> = if nocase {
-        Some(string.to_lowercase())
+        Some(string.to_ascii_lowercase())
     } else {
         None
     };
@@ -1328,7 +1328,7 @@ pub fn cmd_string_range(_interp: &mut Interp, _: ContextID, argv: &[Value]) -> M
 pub fn cmd_string_tolower(_interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltOptResult {
     check_args(2, argv, 3, 3, "string")?;
 
-    let lower = argv[2].as_str().to_lowercase();
+    let lower = argv[2].as_str().to_ascii_lowercase();
     molt_opt_ok!(lower)
 }
 
@@ -1336,7 +1336,7 @@ pub fn cmd_string_tolower(_interp: &mut Interp, _: ContextID, argv: &[Value]) ->
 pub fn cmd_string_toupper(_interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltOptResult {
     check_args(2, argv, 3, 3, "string")?;
 
-    let upper = argv[2].as_str().to_uppercase();
+    let upper = argv[2].as_str().to_ascii_uppercase();
     molt_opt_ok!(upper)
 }
 
@@ -1351,7 +1351,7 @@ pub fn cmd_string_trim(_interp: &mut Interp, _: ContextID, argv: &[Value]) -> Mo
         _ => s.trim(),
     };
 
-    molt_opt_ok!(trimmed)
+    molt_opt_ok!(trimmed.to_string())
 }
 
 /// throw *type* *message*

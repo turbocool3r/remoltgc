@@ -154,7 +154,7 @@ impl<'a> EvalPtr<'a> {
     /// Is the current character is a valid whitespace character, including newlines?
     pub fn next_is_block_white(&mut self) -> bool {
         match self.tok.peek() {
-            Some(c) => c.is_whitespace(),
+            Some(c) => c.is_ascii_whitespace(),
             None => false,
         }
     }
@@ -162,7 +162,7 @@ impl<'a> EvalPtr<'a> {
     /// Is the current character is a valid whitespace character, excluding newlines?
     pub fn next_is_line_white(&mut self) -> bool {
         match self.tok.peek() {
-            Some(c) => c.is_whitespace() && c != '\n',
+            Some(c) => c.is_ascii_whitespace() && c != '\n',
             None => false,
         }
     }
@@ -170,7 +170,7 @@ impl<'a> EvalPtr<'a> {
     /// Is the current character a valid variable name character?
     pub fn next_is_varname_char(&mut self) -> bool {
         match self.tok.peek() {
-            Some(c) => c.is_alphanumeric() || c == '_',
+            Some(c) => c.is_ascii_alphanumeric() || c == '_',
             None => false,
         }
     }

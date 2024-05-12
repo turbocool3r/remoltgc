@@ -335,11 +335,11 @@ mod tests {
     #[test]
     fn test_has() {
         let mut ptr = Tokenizer::new("a1");
-        assert!(ptr.has(|c| c.is_alphabetic()));
+        assert!(ptr.has(|c| c.is_ascii_alphabetic()));
         ptr.skip();
-        assert!(!ptr.has(|c| c.is_alphabetic()));
+        assert!(!ptr.has(|c| c.is_ascii_alphabetic()));
         ptr.skip();
-        assert!(!ptr.has(|c| c.is_alphabetic()));
+        assert!(!ptr.has(|c| c.is_ascii_alphabetic()));
     }
 
     #[test]

@@ -933,16 +933,9 @@ pub fn cmd_return(_interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltRes
     };
 
     // NEXT, Get any options
-    let mut queue = opt_args.iter();
-
-    while let Some(opt) = queue.next() {
-        // We built the queue to have an even number of arguments, and every option requires
-        // a value; so there can't be a missing option value.
-        let val = queue
-            .next()
-            .expect("missing option value: coding error in cmd_return");
-
-        match opt.as_str() {
+    for pair in opt_args.chunks(2) {
+        let val = &pair[1];
+        match pair[0].as_str() {
             "-code" => {
                 code = ResultCode::from_value(val)?;
             }
@@ -958,7 +951,7 @@ pub fn cmd_return(_interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltRes
                 level = val.as_int()?;
             }
             // TODO: In standard TCL there are no invalid options; all options are retained.
-            _ => return molt_err!("invalid return option: \"{}\"", opt),
+            _ => return molt_err!("invalid return option: \"{}\"", pair[0]),
         }
     }
 

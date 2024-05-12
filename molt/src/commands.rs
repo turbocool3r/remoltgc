@@ -2,10 +2,8 @@
 //!
 //! This module defines the standard Molt commands.
 
-use crate::dict::dict_new;
-use crate::dict::dict_path_insert;
-use crate::dict::dict_path_remove;
-use crate::dict::list_to_dict;
+#[cfg(feature = "dict")]
+use crate::dict::{dict_new, dict_path_insert, dict_path_remove, list_to_dict};
 use crate::interp::Interp;
 use crate::types::*;
 use crate::util;
@@ -168,7 +166,10 @@ pub fn cmd_catch(interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResul
     }
 
     if argv.len() == 4 {
+        #[cfg(feature = "dict")]
         interp.set_var(&argv[3], interp.return_options(&result))?;
+        #[cfg(not(feature = "dict"))]
+        unimplemented!("return options");
     }
 
     Ok(Value::from(code))
@@ -184,10 +185,12 @@ pub fn cmd_continue(_interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltR
 }
 
 /// # dict *subcommand* ?*arg*...?
+#[cfg(feature = "dict")]
 pub fn cmd_dict(interp: &mut Interp, context_id: ContextID, argv: &[Value]) -> MoltResult {
     interp.call_subcommand(context_id, argv, 1, &DICT_SUBCOMMANDS)
 }
 
+#[cfg(feature = "dict")]
 const DICT_SUBCOMMANDS: [Subcommand; 9] = [
     Subcommand("create", cmd_dict_new),
     Subcommand("exists", cmd_dict_exists),
@@ -201,6 +204,7 @@ const DICT_SUBCOMMANDS: [Subcommand; 9] = [
 ];
 
 /// # dict create ?key value ...?
+#[cfg(feature = "dict")]
 fn cmd_dict_new(_: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResult {
     // FIRST, we need an even number of arguments.
     if argv.len() % 2 != 0 {
@@ -220,6 +224,7 @@ fn cmd_dict_new(_: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResult {
 }
 
 /// # dict exists *dictionary* key ?*key* ...?
+#[cfg(feature = "dict")]
 fn cmd_dict_exists(_: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResult {
     check_args(2, argv, 4, 0, "dictionary key ?key ...?")?;
 
@@ -242,6 +247,7 @@ fn cmd_dict_exists(_: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResult {
 }
 
 /// # dict get *dictionary* ?*key* ...?
+#[cfg(feature = "dict")]
 fn cmd_dict_get(_: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResult {
     check_args(2, argv, 3, 0, "dictionary ?key ...?")?;
 
@@ -263,6 +269,7 @@ fn cmd_dict_get(_: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResult {
 
 /// # dict keys *dictionary*
 /// TODO: Add filtering when we have glob matching.
+#[cfg(feature = "dict")]
 fn cmd_dict_keys(_: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResult {
     check_args(2, argv, 3, 3, "dictionary")?;
 
@@ -272,6 +279,7 @@ fn cmd_dict_keys(_: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResult {
 }
 
 /// # dict remove *dictionary* ?*key* ...?
+#[cfg(feature = "dict")]
 fn cmd_dict_remove(_: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResult {
     check_args(2, argv, 3, 0, "dictionary ?key ...?")?;
 
@@ -289,6 +297,7 @@ fn cmd_dict_remove(_: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResult {
 }
 
 /// # dict set *dictVarName* *key* ?*key* ...? *value*
+#[cfg(feature = "dict")]
 fn cmd_dict_set(interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResult {
     check_args(2, argv, 5, 0, "dictVarName key ?key ...? value")?;
 
@@ -304,6 +313,7 @@ fn cmd_dict_set(interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResult
 }
 
 /// # dict size *dictionary*
+#[cfg(feature = "dict")]
 fn cmd_dict_size(_: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResult {
     check_args(2, argv, 3, 3, "dictionary")?;
 
@@ -312,6 +322,7 @@ fn cmd_dict_size(_: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResult {
 }
 
 /// # dict unset *dictVarName* *key* ?*key* ...?
+#[cfg(feature = "dict")]
 fn cmd_dict_unset(interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResult {
     check_args(2, argv, 4, 0, "dictVarName key ?key ...?")?;
 
@@ -327,6 +338,7 @@ fn cmd_dict_unset(interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResu
 
 /// # dict values *dictionary*
 /// TODO: Add filtering when we have glob matching.
+#[cfg(feature = "dict")]
 fn cmd_dict_values(_: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResult {
     check_args(2, argv, 3, 3, "dictionary")?;
 
@@ -788,6 +800,7 @@ pub fn cmd_llength(_interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltRe
     molt_ok!(argv[1].as_list()?.len() as MoltInt)
 }
 
+/*
 ///// # pdump
 /////
 ///// Dumps profile data.  Developer use only.
@@ -809,6 +822,7 @@ pub fn cmd_llength(_interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltRe
 //
 //    molt_ok!()
 //}
+*/
 
 /// # proc *name* *args* *body*
 ///
@@ -998,10 +1012,10 @@ pub fn cmd_set(interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResult 
 
 /// # string *subcommand* ?*arg*...?
 pub fn cmd_string(interp: &mut Interp, context_id: ContextID, argv: &[Value]) -> MoltResult {
-    interp.call_subcommand(context_id, argv, 1, &STRING_SUBCOMMANDS)
+    interp.call_subcommand(context_id, argv, 1, STRING_SUBCOMMANDS)
 }
 
-const STRING_SUBCOMMANDS: [Subcommand; 13] = [
+const STRING_SUBCOMMANDS: &[Subcommand] = &[
     Subcommand("cat", cmd_string_cat),
     Subcommand("compare", cmd_string_compare),
     Subcommand("equal", cmd_string_equal),
@@ -1009,6 +1023,7 @@ const STRING_SUBCOMMANDS: [Subcommand; 13] = [
     // Subcommand("index", cmd_string_todo),
     Subcommand("last", cmd_string_last),
     Subcommand("length", cmd_string_length),
+    #[cfg(feature = "dict")]
     Subcommand("map", cmd_string_map),
     Subcommand("range", cmd_string_range),
     // Subcommand("replace", cmd_string_todo),
@@ -1209,6 +1224,7 @@ pub fn cmd_string_length(_interp: &mut Interp, _: ContextID, argv: &[Value]) -> 
 }
 
 /// string map ?-nocase? *charMap* *string*
+#[cfg(feature = "dict")]
 pub fn cmd_string_map(_interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResult {
     check_args(2, argv, 4, 5, "?-nocase? charMap string")?;
 

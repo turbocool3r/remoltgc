@@ -165,14 +165,16 @@
 //!
 //! [`Value`]: struct.Value.html
 
-use crate::dict::dict_to_string;
-use crate::dict::list_to_dict;
+#[cfg(feature = "dict")]
+use crate::dict::{dict_to_string, list_to_dict};
+
 use crate::expr::Datum;
 use crate::list::get_list;
 use crate::list::list_to_string;
 use crate::parser;
 use crate::parser::Script;
 use crate::types::Exception;
+#[cfg(feature = "dict")]
 use crate::types::MoltDict;
 use crate::types::MoltFloat;
 use crate::types::MoltInt;
@@ -334,6 +336,7 @@ impl From<bool> for Value {
     }
 }
 
+#[cfg(feature = "dict")]
 impl From<MoltDict> for Value {
     /// Creates a new `Value` whose data representation is a `MoltDict`.
     ///
@@ -604,6 +607,7 @@ impl Value {
     /// # Ok(())
     /// # }
     /// ```
+    #[cfg(feature = "dict")]
     pub fn as_dict(&self) -> Result<Rc<MoltDict>, Exception> {
         // FIRST, if we have the desired type, return it.
         if let DataRep::Dict(dict) = &*self.inner.data_rep.borrow() {
@@ -647,6 +651,7 @@ impl Value {
     /// # Ok("dummy".to_string())
     /// # }
     /// ```
+    #[cfg(feature = "dict")]
     pub fn to_dict(&self) -> Result<MoltDict, Exception> {
         Ok((*self.as_dict()?).to_owned())
     }
@@ -1140,6 +1145,7 @@ enum DataRep {
     Bool(bool),
 
     /// A Molt Dictionary
+    #[cfg(feature = "dict")]
     Dict(Rc<MoltDict>),
 
     /// A Molt integer
@@ -1168,6 +1174,7 @@ impl Display for DataRep {
     fn fmt(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
         match self {
             DataRep::Bool(flag) => write!(f, "{}", if *flag { 1 } else { 0 }),
+            #[cfg(feature = "dict")]
             DataRep::Dict(dict) => write!(f, "{}", dict_to_string(dict)),
             DataRep::Int(int) => write!(f, "{}", int),
             DataRep::Flt(flt) => Value::fmt_float(f, *flt),
@@ -1183,6 +1190,7 @@ impl Display for DataRep {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[cfg(feature = "dict")]
     use crate::dict::dict_new;
     use std::fmt;
     use std::str::FromStr;
@@ -1295,6 +1303,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "dict")]
     fn from_as_dict() {
         // NOTE: we aren't testing dict formatting and parsing here.
         // We *are* testing that Value can convert dicts to and from strings.
@@ -1316,6 +1325,7 @@ mod tests {
     }
 
     #[test]
+    #[cfg(feature = "dict")]
     fn to_dict() {
         let dictval = Value::from("qrs xyz");
         let result = dictval.to_dict();

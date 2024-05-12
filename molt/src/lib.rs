@@ -34,6 +34,7 @@ pub use crate::test_harness::test_harness;
 pub use crate::types::*;
 
 mod commands;
+#[cfg(feature = "dict")]
 pub mod dict;
 mod eval_ptr;
 mod expr;

@@ -442,6 +442,7 @@
 
 use crate::check_args;
 use crate::commands;
+#[cfg(feature = "dict")]
 use crate::dict::dict_new;
 use crate::expr;
 use crate::list::list_to_string;
@@ -686,6 +687,7 @@ impl Interp {
         interp.add_command("break", commands::cmd_break);
         interp.add_command("catch", commands::cmd_catch);
         interp.add_command("continue", commands::cmd_continue);
+        #[cfg(feature = "dict")]
         interp.add_command("dict", commands::cmd_dict);
         interp.add_command("error", commands::cmd_error);
         interp.add_command("expr", commands::cmd_expr);
@@ -971,6 +973,7 @@ impl Interp {
 
     /// Returns the `return` option dictionary for the given result as a dictionary value.
     /// Used by the `catch` command.
+    #[cfg(feature = "dict")]
     pub(crate) fn return_options(&self, result: &MoltResult) -> Value {
         let mut opts = dict_new();
 

@@ -25,6 +25,7 @@
 
 use crate::interp::Interp;
 pub use crate::value::Value;
+#[cfg(feature = "dict")]
 use indexmap::IndexMap;
 use core::fmt;
 use core::str::FromStr;
@@ -58,6 +59,7 @@ pub type MoltList = Vec<Value>;
 ///
 /// A dictionary is a mapping from `Value` to `Value` that preserves the key insertion
 /// order.
+#[cfg(feature = "dict")]
 #[allow(deprecated)]
 pub type MoltDict = IndexMap<Value, Value, core::hash::BuildHasherDefault<core::hash::SipHasher>>;
 

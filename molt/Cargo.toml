@@ -11,4 +11,7 @@ readme = "README.md"
 keywords = ["language", "script", "scripting", "tcl"]
 
 [dependencies]
-indexmap = {version = "1.3.0", default-features = false}
+indexmap = {version = "1.3.0", default-features = false, optional = true}
+
+[features]
+dict = ["dep:indexmap"]

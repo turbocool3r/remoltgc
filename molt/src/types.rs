@@ -47,6 +47,7 @@ pub type MoltInt = i64;
 /// The interpreter uses this type internally for all Molt floating-point values.
 /// The primary reason for defining this as a type alias is future-proofing: at
 /// some point we may wish to replace `MoltFloat` with `f128`.
+#[cfg(feature = "float")]
 pub type MoltFloat = f64;
 
 /// The standard list type for Molt code.

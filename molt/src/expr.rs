@@ -22,6 +22,7 @@ type DatumResult = Result<Datum, Exception>;
 #[derive(Debug, PartialEq, Eq, Copy, Clone)]
 pub(crate) enum Type {
     Int,
+    #[cfg(feature = "float")]
     Float,
     String,
 }
@@ -39,6 +40,7 @@ pub(crate) enum Type {
 pub(crate) struct Datum {
     vtype: Type,
     int: MoltInt,
+    #[cfg(feature = "float")]
     flt: MoltFloat,
     str: String,
 }
@@ -48,6 +50,7 @@ impl Datum {
         Self {
             vtype: Type::String,
             int: 0,
+            #[cfg(feature = "float")]
             flt: 0.0,
             str: String::new(),
         }
@@ -57,11 +60,13 @@ impl Datum {
         Self {
             vtype: Type::Int,
             int,
+            #[cfg(feature = "float")]
             flt: 0.0,
             str: String::new(),
         }
     }
 
+    #[cfg(feature = "float")]
     pub(crate) fn float(flt: MoltFloat) -> Self {
         Self {
             vtype: Type::Float,
@@ -75,6 +80,7 @@ impl Datum {
         Self {
             vtype: Type::String,
             int: 0,
+            #[cfg(feature = "float")]
             flt: 0.0,
             str: string.to_string(),
         }
@@ -100,6 +106,7 @@ const MAX_MATH_ARGS: usize = 2;
 #[derive(Debug, PartialEq, Eq, Copy, Clone)]
 enum ArgType {
     None,
+    #[cfg(feature = "float")]
     Float,  // Must convert to Type::Float
     Int,    // Must convert to Type::Int
     Number, // Either Type::Int or Type::Float is OK
@@ -114,13 +121,14 @@ struct BuiltinFunc {
     func: MathFunc,
 }
 
-const FUNC_TABLE: [BuiltinFunc; 4] = [
+const FUNC_TABLE: &[BuiltinFunc] = &[
     BuiltinFunc {
         name: "abs",
         num_args: 1,
         arg_types: [ArgType::Number, ArgType::None],
         func: expr_abs_func,
     },
+    #[cfg(feature = "float")]
     BuiltinFunc {
         name: "double",
         num_args: 1,
@@ -133,6 +141,7 @@ const FUNC_TABLE: [BuiltinFunc; 4] = [
         arg_types: [ArgType::Number, ArgType::None],
         func: expr_int_func,
     },
+    #[cfg(feature = "float")]
     BuiltinFunc {
         name: "round",
         num_args: 1,
@@ -255,6 +264,7 @@ pub fn expr(interp: &mut Interp, expr: &Value) -> MoltResult {
 
     match value.vtype {
         Type::Int => molt_ok!(Value::from(value.int)),
+        #[cfg(feature = "float")]
         Type::Float => molt_ok!(Value::from(value.flt)),
         Type::String => molt_ok!(Value::from(value.str)),
     }
@@ -275,6 +285,7 @@ fn expr_top_level(interp: &mut Interp, string: &str) -> DatumResult {
                 return molt_err!("syntax error in expression \"{}\"", string);
             }
 
+            #[cfg(feature = "float")]
             if value.vtype == Type::Float {
                 // TODO: check for NaN, INF, and throw IEEE floating point error.
             }
@@ -334,6 +345,7 @@ fn expr_get_value(interp: &mut Interp, info: &mut ExprInfo, prec: i32) -> DatumR
                         Type::Int => {
                             value.int = -value.int;
                         }
+                        #[cfg(feature = "float")]
                         Type::Float => {
                             value.flt = -value.flt;
                         }
@@ -357,6 +369,7 @@ fn expr_get_value(interp: &mut Interp, info: &mut ExprInfo, prec: i32) -> DatumR
                                     value.int = 0;
                                 }
                             }
+                            #[cfg(feature = "float")]
                             Type::Float => {
                                 if value.flt == 0.0 {
                                     value = Datum::int(1);
@@ -421,6 +434,7 @@ fn expr_get_value(interp: &mut Interp, info: &mut ExprInfo, prec: i32) -> DatumR
             // For these operators, we need an integer value.  Convert or return
             // an error.
             match value.vtype {
+                #[cfg(feature = "float")]
                 Type::Float => {
                     if value.flt == 0.0 {
                         value = Datum::int(0);
@@ -507,6 +521,7 @@ fn expr_get_value(interp: &mut Interp, info: &mut ExprInfo, prec: i32) -> DatumR
                     return illegal_type(Type::String, operator);
                 }
 
+                #[cfg(feature = "float")]
                 if value.vtype == Type::Float {
                     if value2.vtype == Type::Int {
                         value2.flt = value2.int as MoltFloat;
@@ -540,13 +555,16 @@ fn expr_get_value(interp: &mut Interp, info: &mut ExprInfo, prec: i32) -> DatumR
                     if value.vtype != Type::String {
                         value = expr_as_str(value);
                     }
-                } else if value.vtype == Type::Float {
-                    if value2.vtype == Type::Int {
-                        value2 = Datum::float(value2.int as MoltFloat);
-                    }
-                } else if value2.vtype == Type::Float {
-                    if value.vtype == Type::Int {
-                        value = Datum::float(value.int as MoltFloat);
+                } else {
+                    #[cfg(feature = "float")]
+                    if value.vtype == Type::Float {
+                        if value2.vtype == Type::Int {
+                            value2 = Datum::float(value2.int as MoltFloat);
+                        }
+                    } else if value2.vtype == Type::Float {
+                        if value.vtype == Type::Int {
+                            value = Datum::float(value.int as MoltFloat);
+                        }
                     }
                 }
             }
@@ -594,7 +612,10 @@ fn expr_get_value(interp: &mut Interp, info: &mut ExprInfo, prec: i32) -> DatumR
                         return molt_err!("integer overflow");
                     }
                 } else {
-                    value.flt *= value2.flt;
+                    #[cfg(feature = "float")]
+                    {
+                        value.flt *= value2.flt;
+                    }
                 }
             }
             DIVIDE => {
@@ -609,11 +630,14 @@ fn expr_get_value(interp: &mut Interp, info: &mut ExprInfo, prec: i32) -> DatumR
                         return molt_err!("integer overflow");
                     }
                 } else {
-                    if value2.flt == 0.0 {
-                        // TODO: return Inf or -Inf?  Waiting for response from KBK
-                        return molt_err!("divide by zero");
+                    #[cfg(feature = "float")]
+                    {
+                        if value2.flt == 0.0 {
+                            // TODO: return Inf or -Inf?  Waiting for response from KBK
+                            return molt_err!("divide by zero");
+                        }
+                        value.flt /= value2.flt;
                     }
-                    value.flt /= value2.flt;
                 }
             }
             MOD => {
@@ -638,7 +662,10 @@ fn expr_get_value(interp: &mut Interp, info: &mut ExprInfo, prec: i32) -> DatumR
                         return molt_err!("integer overflow");
                     }
                 } else {
-                    value.flt += value2.flt;
+                    #[cfg(feature = "float")]
+                    {
+                        value.flt += value2.flt;
+                    }
                 }
             }
             MINUS => {
@@ -650,7 +677,10 @@ fn expr_get_value(interp: &mut Interp, info: &mut ExprInfo, prec: i32) -> DatumR
                         return molt_err!("integer overflow");
                     }
                 } else {
-                    value.flt -= value2.flt;
+                    #[cfg(feature = "float")]
+                    {
+                        value.flt -= value2.flt;
+                    }
                 }
             }
             LEFT_SHIFT => {
@@ -673,6 +703,7 @@ fn expr_get_value(interp: &mut Interp, info: &mut ExprInfo, prec: i32) -> DatumR
             LESS => {
                 let flag = match value.vtype {
                     Type::Int => value.int < value2.int,
+                    #[cfg(feature = "float")]
                     Type::Float => value.flt < value2.flt,
                     Type::String => value.str < value2.str,
                 };
@@ -682,6 +713,7 @@ fn expr_get_value(interp: &mut Interp, info: &mut ExprInfo, prec: i32) -> DatumR
             GREATER => {
                 let flag = match value.vtype {
                     Type::Int => value.int > value2.int,
+                    #[cfg(feature = "float")]
                     Type::Float => value.flt > value2.flt,
                     Type::String => value.str > value2.str,
                 };
@@ -691,6 +723,7 @@ fn expr_get_value(interp: &mut Interp, info: &mut ExprInfo, prec: i32) -> DatumR
             LEQ => {
                 let flag = match value.vtype {
                     Type::Int => value.int <= value2.int,
+                    #[cfg(feature = "float")]
                     Type::Float => value.flt <= value2.flt,
                     Type::String => value.str <= value2.str,
                 };
@@ -700,6 +733,7 @@ fn expr_get_value(interp: &mut Interp, info: &mut ExprInfo, prec: i32) -> DatumR
             GEQ => {
                 let flag = match value.vtype {
                     Type::Int => value.int >= value2.int,
+                    #[cfg(feature = "float")]
                     Type::Float => value.flt >= value2.flt,
                     Type::String => value.str >= value2.str,
                 };
@@ -711,6 +745,7 @@ fn expr_get_value(interp: &mut Interp, info: &mut ExprInfo, prec: i32) -> DatumR
                 // TCL programmer.
                 let flag = match value.vtype {
                     Type::Int => value.int == value2.int,
+                    #[cfg(feature = "float")]
                     Type::Float => value.flt == value2.flt,
                     Type::String => value.str == value2.str,
                 };
@@ -722,6 +757,7 @@ fn expr_get_value(interp: &mut Interp, info: &mut ExprInfo, prec: i32) -> DatumR
                 // TCL programmer.
                 let flag = match value.vtype {
                     Type::Int => value.int != value2.int,
+                    #[cfg(feature = "float")]
                     Type::Float => value.flt != value2.flt,
                     Type::String => value.str != value2.str,
                 };
@@ -774,6 +810,7 @@ fn expr_get_value(interp: &mut Interp, info: &mut ExprInfo, prec: i32) -> DatumR
             // an integer.  Thus we need only consider the possibility of int vs. double
             // for the second value.
             AND => {
+                #[cfg(feature = "float")]
                 if value2.vtype == Type::Float {
                     value2.vtype = Type::Int;
                     value2.int = if value2.flt != 0.0 { 1 } else { 0 };
@@ -785,6 +822,7 @@ fn expr_get_value(interp: &mut Interp, info: &mut ExprInfo, prec: i32) -> DatumR
                 };
             }
             OR => {
+                #[cfg(feature = "float")]
                 if value2.vtype == Type::Float {
                     value2.vtype = Type::Int;
                     value2.int = if value2.flt != 0.0 { 1 } else { 0 };
@@ -835,17 +873,21 @@ fn expr_lex(interp: &mut Interp, info: &mut ExprInfo) -> DatumResult {
     // mistake, which will eventually cause a syntax error.
 
     if !p.is('+') && !p.is('-') {
-        if expr_looks_like_int(&p) {
+        if expr_looks_like_int(&p) || cfg!(not(feature = "float")) {
             // There's definitely an integer to parse; parse it.
             let token = util::read_int(&mut p).unwrap();
             let int = Value::get_int(&token)?;
             info.token = VALUE;
             info.expr = p;
             return Ok(Datum::int(int));
-        } else if let Some(token) = util::read_float(&mut p) {
-            info.token = VALUE;
-            info.expr = p;
-            return Ok(Datum::float(Value::get_float(&token)?));
+        } else {
+            #[cfg(feature = "float")]
+            if let Some(token) = util::read_float(&mut p) {
+                info.token = VALUE;
+                info.expr = p;
+                return Ok(Datum::float(Value::get_float(&token)?));
+            }
+            unreachable!()
         }
     }
 
@@ -1210,13 +1252,19 @@ fn expr_math_func(interp: &mut Interp, info: &mut ExprInfo, func_name: &str) -> 
 
             // Copy the value to the argument record, converting it if necessary.
             if arg.vtype == Type::Int {
+                #[cfg(feature = "float")]
                 if bfunc.arg_types[i] == ArgType::Float {
                     args[i] = Datum::float(arg.int as MoltFloat);
                 } else {
                     args[i] = arg;
                 }
+                #[cfg(not(feature = "float"))]
+                {
+                    args[i] = arg;
+                }
             } else {
                 // Type::Float
+                #[cfg(feature = "float")]
                 if bfunc.arg_types[i] == ArgType::Int {
                     // TODO: Need to handle overflow?
                     args[i] = Datum::int(arg.flt as MoltInt);
@@ -1261,7 +1309,7 @@ fn expr_math_func(interp: &mut Interp, info: &mut ExprInfo, func_name: &str) -> 
 // Find the function in the table.
 // TODO: Really, functions should be registered with the interpreter.
 fn expr_find_func(func_name: &str) -> Result<&'static BuiltinFunc, Exception> {
-    for bfunc in &FUNC_TABLE {
+    for bfunc in FUNC_TABLE {
         if bfunc.name == func_name {
             return Ok(bfunc);
         }
@@ -1309,20 +1357,23 @@ fn expr_parse_string(string: &str) -> DatumResult {
                 return Ok(Datum::int(int));
             }
         } else {
-            // FIRST, see if it's a double. Skip leading whitespace.
-            p.skip_while(|c| c.is_whitespace());
-
-            // NEXT, see if we can get a float token from it.
-            if let Some(token) = util::read_float(&mut p) {
-                // Did we read the whole string?  If not, it isn't really a float.
-                // Otherwise, drop through and return it as a string.
+            #[cfg(feature = "float")]
+            {
+                // FIRST, see if it's a double. Skip leading whitespace.
                 p.skip_while(|c| c.is_whitespace());
 
-                if p.at_end() {
-                    // Can theoretically return an error.  This is consistent with
-                    // Tcl 7.6.  Molt and Tcl 8 return 0, Inf, or -Inf instead.
-                    let flt = Value::get_float(&token)?;
-                    return Ok(Datum::float(flt));
+                // NEXT, see if we can get a float token from it.
+                if let Some(token) = util::read_float(&mut p) {
+                    // Did we read the whole string?  If not, it isn't really a float.
+                    // Otherwise, drop through and return it as a string.
+                    p.skip_while(|c| c.is_whitespace());
+
+                    if p.at_end() {
+                        // Can theoretically return an error.  This is consistent with
+                        // Tcl 7.6.  Molt and Tcl 8 return 0, Inf, or -Inf instead.
+                        let flt = Value::get_float(&token)?;
+                        return Ok(Datum::float(flt));
+                    }
                 }
             }
         }
@@ -1335,6 +1386,7 @@ fn expr_parse_string(string: &str) -> DatumResult {
 fn expr_as_str(value: Datum) -> Datum {
     match value.vtype {
         Type::Int => Datum::string(&format!("{}", value.int)),
+        #[cfg(feature = "float")]
         Type::Float => Datum::string(&format!("{}", value.flt)),
         _ => value,
     }
@@ -1366,6 +1418,7 @@ impl Datum {
     fn is_numeric(&self) -> bool {
         match self.vtype {
             Type::Int => true,
+            #[cfg(feature = "float")]
             Type::Float => true,
             Type::String => false,
         }
@@ -1375,29 +1428,30 @@ impl Datum {
 #[allow(clippy::collapsible_if)]
 fn expr_abs_func(args: &[Datum; MAX_MATH_ARGS]) -> DatumResult {
     let arg = &args[0];
+    #[cfg(feature = "float")]
     if arg.vtype == Type::Float {
-        if arg.flt < 0.0 {
+        return if arg.flt < 0.0 {
             Ok(Datum::float(-arg.flt))
         } else {
             Ok(Datum::float(arg.flt))
-        }
+        };
+    }
+    // TODO: need to handle integer overflow here.
+    if arg.int < 0 {
+        Ok(Datum::int(-arg.int))
     } else {
-        // TODO: need to handle integer overflow here.
-        if arg.int < 0 {
-            Ok(Datum::int(-arg.int))
-        } else {
-            Ok(Datum::int(arg.int))
-        }
+        Ok(Datum::int(arg.int))
     }
 }
 
+#[cfg(feature = "float")]
 fn expr_double_func(args: &[Datum; MAX_MATH_ARGS]) -> DatumResult {
     let arg = &args[0];
+    #[cfg(feature = "float")]
     if arg.vtype == Type::Float {
-        Ok(Datum::float(arg.flt))
-    } else {
-        Ok(Datum::float(arg.int as MoltFloat))
+        return Ok(Datum::float(arg.flt))
     }
+    Ok(Datum::float(arg.int as MoltFloat))
 }
 
 fn expr_int_func(args: &[Datum; MAX_MATH_ARGS]) -> DatumResult {
@@ -1405,11 +1459,17 @@ fn expr_int_func(args: &[Datum; MAX_MATH_ARGS]) -> DatumResult {
     if arg.vtype == Type::Int {
         Ok(Datum::int(arg.int))
     } else {
-        // TODO: need to handle integer overflow here.
-        Ok(Datum::int(arg.flt as MoltInt))
+        #[cfg(feature = "float")]
+        {
+            // TODO: need to handle integer overflow here.
+            Ok(Datum::int(arg.flt as MoltInt))
+        }
+        #[cfg(not(feature = "float"))]
+        unreachable!()
     }
 }
 
+#[cfg(feature = "float")]
 fn expr_round_func(args: &[Datum; MAX_MATH_ARGS]) -> DatumResult {
     // TODO: need to handle integer overflow here.
     let arg = &args[0];
@@ -1429,11 +1489,14 @@ fn syntax_error(info: &mut ExprInfo) -> DatumResult {
 
 // Return standard illegal type error
 fn illegal_type(bad_type: Type, op: i32) -> DatumResult {
+    #[cfg(feature = "float")]
     let type_str = if bad_type == Type::Float {
         "floating-point value"
     } else {
         "non-numeric string"
     };
+    #[cfg(not(feature = "float"))]
+    let type_str = "non-numeric string";
 
     molt_err!(
         "can't use {} as operand of \"{}\"",

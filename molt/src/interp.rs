@@ -682,36 +682,37 @@ impl Interp {
         // denial-of-service kinds of problems, e.g., for, while, proc, rename, and those
         // that can't.
         interp.add_command("append", commands::cmd_append);
-        interp.add_command("array", commands::cmd_array);
-        interp.add_command("assert_eq", commands::cmd_assert_eq);
         interp.add_command("break", commands::cmd_break);
         interp.add_command("catch", commands::cmd_catch);
         interp.add_command("continue", commands::cmd_continue);
+        interp.add_command("error", commands::cmd_error);
+        interp.add_command("global", commands::cmd_global);
+        interp.add_command("array", commands::cmd_array);
+        interp.add_command("assert_eq", commands::cmd_assert_eq);
         #[cfg(feature = "dict")]
         interp.add_command("dict", commands::cmd_dict);
-        interp.add_command("error", commands::cmd_error);
-        interp.add_command("expr", commands::cmd_expr);
-        interp.add_command("for", commands::cmd_for);
-        interp.add_command("foreach", commands::cmd_foreach);
-        interp.add_command("global", commands::cmd_global);
-        interp.add_command("if", commands::cmd_if);
         interp.add_command("incr", commands::cmd_incr);
-        interp.add_command("info", commands::cmd_info);
         interp.add_command("join", commands::cmd_join);
         interp.add_command("lappend", commands::cmd_lappend);
         interp.add_command("lindex", commands::cmd_lindex);
         interp.add_command("list", commands::cmd_list);
         interp.add_command("llength", commands::cmd_llength);
         interp.add_command("proc", commands::cmd_proc);
-        //interp.add_command("puts", commands::cmd_puts);
         interp.add_command("rename", commands::cmd_rename);
         interp.add_command("return", commands::cmd_return);
         interp.add_command("set", commands::cmd_set);
-        interp.add_command("string", commands::cmd_string);
         interp.add_command("throw", commands::cmd_throw);
-        //interp.add_command("time", commands::cmd_time);
         interp.add_command("unset", commands::cmd_unset);
+        interp.add_command("foreach", commands::cmd_foreach);
+        interp.add_command("info", commands::cmd_info);
+        interp.add_command("string", commands::cmd_string);
+        interp.add_command("expr", commands::cmd_expr);
+        interp.add_command("for", commands::cmd_for);
+        interp.add_command("if", commands::cmd_if);
         interp.add_command("while", commands::cmd_while);
+
+        //interp.add_command("puts", commands::cmd_puts);
+        //interp.add_command("time", commands::cmd_time);
 
         // TODO: Requires file access.  Ultimately, might go in an extension crate if
         // the necessary operations aren't available in core::.
@@ -722,7 +723,7 @@ impl Interp {
         //interp.add_command("exit", commands::cmd_exit);
 
         // TODO: Developer Tools
-        interp.add_command("parse", parser::cmd_parse);
+        //interp.add_command("parse", parser::cmd_parse);
         //interp.add_command("pdump", commands::cmd_pdump);
         //interp.add_command("pclear", commands::cmd_pclear);
 
@@ -1131,6 +1132,7 @@ impl Interp {
     /// # Ok("dummy".to_string())
     /// # }
     /// ```
+    #[cfg(feature = "float")]
     pub fn expr_float(&mut self, expr: &Value) -> Result<MoltFloat, Exception> {
         self.expr(expr)?.as_float()
     }

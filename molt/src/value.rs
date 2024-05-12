@@ -176,6 +176,7 @@ use crate::parser::Script;
 use crate::types::Exception;
 #[cfg(feature = "dict")]
 use crate::types::MoltDict;
+#[cfg(feature = "float")]
 use crate::types::MoltFloat;
 use crate::types::MoltInt;
 use crate::types::MoltList;
@@ -373,6 +374,7 @@ impl From<MoltInt> for Value {
     }
 }
 
+#[cfg(feature = "float")]
 impl From<MoltFloat> for Value {
     /// Creates a new `Value` whose data representation is a `MoltFloat`.
     ///
@@ -541,6 +543,7 @@ impl Value {
                 return Ok(int != 0);
             }
 
+            #[cfg(feature = "float")]
             if let DataRep::Flt(flt) = *data_ref {
                 return Ok(flt != 0.0);
             }
@@ -761,6 +764,7 @@ impl Value {
     /// # Ok(1.0)
     /// # }
     /// ```
+    #[cfg(feature = "float")]
     pub fn as_float(&self) -> Result<MoltFloat, Exception> {
         // FIRST, if we have a float then just return it.
         if let DataRep::Flt(flt) = *self.inner.data_rep.borrow() {
@@ -790,6 +794,7 @@ impl Value {
     /// # Ok(val)
     /// # }
     /// ```
+    #[cfg(feature = "float")]
     pub fn get_float(arg: &str) -> Result<MoltFloat, Exception> {
         let arg_trim = arg.trim().to_lowercase();
 
@@ -803,6 +808,7 @@ impl Value {
     ///
     /// TODO: This needs a lot of work, so that floating point outputs will parse back into
     /// the same floating point numbers.
+    #[cfg(feature = "float")]
     fn fmt_float(f: &mut core::fmt::Formatter, flt: MoltFloat) -> core::fmt::Result {
         if flt == core::f64::INFINITY {
             write!(f, "Inf")
@@ -1089,6 +1095,7 @@ impl Value {
         let iref = self.inner.data_rep.borrow();
 
         match *iref {
+            #[cfg(feature = "float")]
             DataRep::Flt(flt) => Some(Datum::float(flt)),
             DataRep::Int(int) => Some(Datum::int(int)),
             _ => None,
@@ -1152,6 +1159,7 @@ enum DataRep {
     Int(MoltInt),
 
     /// A Molt float
+    #[cfg(feature = "float")]
     Flt(MoltFloat),
 
     /// A Molt List
@@ -1177,6 +1185,7 @@ impl Display for DataRep {
             #[cfg(feature = "dict")]
             DataRep::Dict(dict) => write!(f, "{}", dict_to_string(dict)),
             DataRep::Int(int) => write!(f, "{}", int),
+            #[cfg(feature = "float")]
             DataRep::Flt(flt) => Value::fmt_float(f, *flt),
             DataRep::List(list) => write!(f, "{}", list_to_string(list)),
             DataRep::Script(script) => write!(f, "{:?}", script),
@@ -1353,10 +1362,13 @@ mod tests {
         // TODO: Note, 7.0 might not get converted to "7" long term.
         // In Standard TCL, its string_rep would be "7.0".  Need to address
         // MoltFloat formatting/parsing.
-        let val = Value::from(7.0);
-        assert_eq!(val.as_str(), "7");
-        assert_eq!(val.as_int(), Ok(7));
-        assert_eq!(val.as_float(), Ok(7.0));
+        #[cfg(feature = "float")]
+        {
+            let val = Value::from(7.0);
+            assert_eq!(val.as_str(), "7");
+            assert_eq!(val.as_int(), Ok(7));
+            assert_eq!(val.as_float(), Ok(7.0));
+        }
 
         let val = Value::from("abc");
         assert_eq!(val.as_int(), molt_err!("expected integer but got \"abc\""));

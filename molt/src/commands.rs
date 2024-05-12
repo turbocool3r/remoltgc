@@ -79,7 +79,8 @@ pub fn cmd_array_set(interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltR
     let var_name = argv[2].as_var_name();
 
     if var_name.index().is_none() {
-        interp.array_set(var_name.name(), &argv[3].as_list()?)
+        interp.array_set(var_name.name(), &argv[3].as_list()?)?;
+        molt_ok!()
     } else {
         // This line will create the array if it doesn't exist, and throw an error if the
         // named variable exists but isn't an array.  This is a little wacky, but it's

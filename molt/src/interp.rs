@@ -1255,11 +1255,8 @@ impl Interp {
     /// # }
     /// ```
     pub fn set_var_return(&mut self, var_name: &Value, value: Value) -> MoltResult {
-        let var_name = &*var_name.as_var_name();
-        match var_name.index() {
-            Some(index) => self.set_element_return(var_name.name(), index, value),
-            None => self.set_scalar_return(var_name.name(), value),
-        }
+        self.set_var(var_name, value.clone())?;
+        Ok(value)
     }
 
     /// Retrieves the value of the named scalar variable in the current scope.
@@ -1312,30 +1309,6 @@ impl Interp {
         self.scopes.set(name, value)
     }
 
-    /// Sets the value of the named scalar variable in the current scope, creating the variable
-    /// if necessary, and returning the value.
-    ///
-    /// Returns an error if the variable exists and is an array variable.
-    ///
-    /// # Example
-    ///
-    /// ```
-    /// use molt::types::*;
-    /// use molt::Interp;
-    /// use molt::molt_ok;
-    /// # fn dummy() -> MoltResult {
-    /// let mut interp = Interp::new();
-    ///
-    /// // Set the value of the scalar variable "a"
-    /// assert_eq!(interp.set_scalar_return("a", Value::from("1"))?.as_str(), "1");
-    /// # molt_ok!()
-    /// # }
-    pub fn set_scalar_return(&mut self, name: &str, value: Value) -> MoltResult {
-        // Clone the value, since we'll be returning it out again.
-        self.scopes.set(name, value.clone())?;
-        Ok(value)
-    }
-
     /// Retrieves the value of the named array element in the current scope.
     ///
     /// Returns an error if the element is not found, or the variable is not an
@@ -1385,31 +1358,6 @@ impl Interp {
     /// ```
     pub fn set_element(&mut self, name: &str, index: &str, value: Value) -> Result<(), Exception> {
         self.scopes.set_elem(name, index, value)
-    }
-
-    /// Sets the value of an array element in the current scope, creating the variable
-    /// if necessary, and returning the value.
-    ///
-    /// Returns an error if the variable exists and is not an array variable.
-    ///
-    /// # Example
-    ///
-    /// ```
-    /// use molt::types::*;
-    /// use molt::Interp;
-    /// use molt::molt_ok;
-    /// # fn dummy() -> MoltResult {
-    /// let mut interp = Interp::new();
-    ///
-    /// // Set the value of the scalar variable "a"
-    /// assert_eq!(interp.set_element_return("b", "1", Value::from("xyz"))?.as_str(), "xyz");
-    /// # molt_ok!()
-    /// # }
-    /// ```
-    pub fn set_element_return(&mut self, name: &str, index: &str, value: Value) -> MoltResult {
-        // Clone the value, since we'll be returning it out again.
-        self.scopes.set_elem(name, index, value.clone())?;
-        Ok(value)
     }
 
     /// Unsets a variable, whether scalar or array, given its name in the current scope.  For
@@ -1668,10 +1616,10 @@ impl Interp {
     /// # molt_ok!()
     /// # }
     /// ```
-    pub fn array_set(&mut self, array_name: &str, kvlist: &[Value]) -> MoltResult {
+    pub fn array_set(&mut self, array_name: &str, kvlist: &[Value]) -> Result<(), Exception> {
         if kvlist.len() % 2 == 0 {
             self.scopes.array_set(array_name, kvlist)?;
-            molt_ok!()
+            Ok(())
         } else {
             molt_err!("list must have an even number of elements")
         }

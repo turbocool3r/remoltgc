@@ -99,7 +99,7 @@ pub fn check_args(
     min: usize,
     max: usize,
     argsig: &str,
-) -> MoltResult {
+) -> Result<(), Exception> {
     assert!(namec >= 1);
     assert!(min >= 1);
     assert!(!argv.is_empty());
@@ -112,7 +112,7 @@ pub fn check_args(
             argsig
         )
     } else {
-        molt_ok!()
+        Ok(())
     }
 }
 
@@ -168,11 +168,11 @@ mod tests {
 
     // Helpers
 
-    fn assert_err(result: &MoltResult, msg: &str) {
+    fn assert_err<T: PartialEq + core::fmt::Debug>(result: &Result<T, Exception>, msg: &str) {
         assert_eq!(molt_err!(msg), *result);
     }
 
-    fn assert_ok(result: &MoltResult) {
+    fn assert_ok<T>(result: &Result<T, Exception>) {
         assert!(result.is_ok(), "Result is not Ok");
     }
 }

@@ -48,7 +48,7 @@ macro_rules! molt_ok {
         Ok(Value::from($arg))
     );
     ($($arg:tt)*) => (
-        Ok(Value::from(alloc::format!($($arg)*)))
+        Ok(Value::from($crate::format!($($arg)*)))
     )
 }
 
@@ -99,7 +99,7 @@ macro_rules! molt_err {
         Err(Exception::molt_err(Value::from($arg)))
     );
     ($($arg:tt)*) => (
-        Err(Exception::molt_err(Value::from(alloc::format!($($arg)*))))
+        Err(Exception::molt_err(Value::from($crate::format!($($arg)*))))
     )
 }
 
@@ -154,7 +154,7 @@ macro_rules! molt_throw {
         Err(Exception::molt_err2(Value::from($code), Value::from($msg)))
     );
     ($code:expr, $($arg:tt)*) => (
-        Err(Exception::molt_err2(Value::from($code), Value::from(alloc::format!($($arg)*))))
+        Err(Exception::molt_err2(Value::from($code), Value::from($crate::format!($($arg)*))))
     )
 }
 

@@ -14,8 +14,10 @@ keywords = ["language", "script", "scripting", "tcl"]
 indexmap = {version = "1.3.0", default-features = false, optional = true}
 
 [features]
+default = ["dict", "float", "i64", "error-stack-trace", "internals", "std"]
 dict = ["dep:indexmap"]
 float = []
 i64 = []
 error-stack-trace = []
 internals = []
+std = []

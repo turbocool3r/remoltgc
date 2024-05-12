@@ -462,6 +462,9 @@ use alloc::vec::Vec;
 use alloc::boxed::Box;
 use alloc::format;
 
+#[cfg(feature = "std")]
+use std::time::Instant;
+
 /// The Molt Interpreter.
 ///
 /// The `Interp` struct is the primary API for
@@ -509,7 +512,8 @@ pub struct Interp {
     num_levels: usize,
 
     // Profile Map
-    //profile_map: BTreeMap<String, ProfileRecord>,
+    #[cfg(feature = "std")]
+    profile_map: BTreeMap<String, ProfileRecord>,
 }
 
 /// A command defined in the interpreter.
@@ -602,16 +606,18 @@ impl ContextBox {
     }
 }
 
-//struct ProfileRecord {
-//    count: u128,
-//    nanos: u128,
-//}
-//
-//impl ProfileRecord {
-//    fn new() -> Self {
-//        Self { count: 0, nanos: 0 }
-//    }
-//}
+#[cfg(feature = "std")]
+struct ProfileRecord {
+    count: u128,
+    nanos: u128,
+}
+
+#[cfg(feature = "std")]
+impl ProfileRecord {
+    fn new() -> Self {
+        Self { count: 0, nanos: 0 }
+    }
+}
 
 // NOTE: The order of methods in the generated RustDoc depends on the order in this block.
 // Consequently, methods are ordered pedagogically.
@@ -639,7 +645,8 @@ impl Interp {
             context_map: BTreeMap::new(),
             scopes: ScopeStack::new(),
             num_levels: 0,
-            //profile_map: BTreeMap::new(),
+            #[cfg(feature = "std")]
+            profile_map: BTreeMap::new(),
         };
 
         interp.set_scalar("errorInfo", Value::empty()).unwrap();
@@ -703,26 +710,33 @@ impl Interp {
         interp.add_command("if", commands::cmd_if);
         interp.add_command("while", commands::cmd_while);
 
-        //interp.add_command("puts", commands::cmd_puts);
-        //interp.add_command("time", commands::cmd_time);
+        #[cfg(feature = "std")]
+        interp.add_command("puts", commands::cmd_puts);
+        #[cfg(feature = "std")]
+        interp.add_command("time", commands::cmd_time);
 
         // TODO: Requires file access.  Ultimately, might go in an extension crate if
         // the necessary operations aren't available in core::.
-        //interp.add_command("source", commands::cmd_source);
+        #[cfg(feature = "std")]
+        interp.add_command("source", commands::cmd_source);
 
         // TODO: Useful for entire programs written in Molt; but not necessarily wanted in
         // extension scripts.
-        //interp.add_command("exit", commands::cmd_exit);
+        #[cfg(feature = "std")]
+        interp.add_command("exit", commands::cmd_exit);
 
         // TODO: Developer Tools
         #[cfg(feature = "internals")]
         interp.add_command("parse", parser::cmd_parse);
-        //interp.add_command("pdump", commands::cmd_pdump);
-        //interp.add_command("pclear", commands::cmd_pclear);
+        #[cfg(all(feature = "std", feature = "internals"))]
+        interp.add_command("pdump", commands::cmd_pdump);
+        #[cfg(all(feature = "std", feature = "internals"))]
+        interp.add_command("pclear", commands::cmd_pclear);
 
         // Populate the environment variable.
         // TODO: Really should be a "linked" variable, where sets to it are tracked and
         // written back to the environment.
+        #[cfg(feature = "std")]
         interp.populate_env();
 
         interp
@@ -733,11 +747,12 @@ impl Interp {
     /// # TCL Liens
     ///
     /// Changes to the variable are not mirrored back into the process's environment.
+    #[cfg(feature = "std")]
     fn populate_env(&mut self) {
-        //for (key, value) in std::env::vars() {
-        //    // Drop the result, as there's no good reason for this to ever throw an error.
-        //    let _ = self.set_element("env", &key, value.into());
-        //}
+        for (key, value) in std::env::vars() {
+            // Drop the result, as there's no good reason for this to ever throw an error.
+            let _ = self.set_element("env", &key, value.into());
+        }
     }
 
     //--------------------------------------------------------------------------------------------
@@ -2086,33 +2101,36 @@ impl Interp {
     // Profiling
 
     // Unstable; use at own risk.
-    //pub fn profile_save(&mut self, _name: &str, _start: std::time::Instant) {
-        //let dur = Instant::now().duration_since(start).as_nanos();
-        //let rec = self
-        //    .profile_map
-        //    .entry(name.into())
-        //    .or_insert_with(ProfileRecord::new);
+    #[cfg(feature = "std")]
+    pub fn profile_save(&mut self, name: &str, start: std::time::Instant) {
+        let dur = Instant::now().duration_since(start).as_nanos();
+        let rec = self
+            .profile_map
+            .entry(name.into())
+            .or_insert_with(ProfileRecord::new);
 
-        //rec.count += 1;
-        //rec.nanos += dur;
-   //// }
-
-    // Unstable; use at own risk.
-    //pub fn profile_clear(&mut self) {
-    //    self.profile_map.clear();
-    //}
+        rec.count += 1;
+        rec.nanos += dur;
+    }
 
     // Unstable; use at own risk.
-    //pub fn profile_dump(&self) {
-    //    if self.profile_map.is_empty() {
-    //        println!("no profile data");
-    //    } else {
-    //        for (name, rec) in &self.profile_map {
-    //            let avg = rec.nanos / rec.count;
-    //            println!("{} nanos {}, count={}", avg, name, rec.count);
-    //        }
-    //    }
-    //}
+    #[cfg(feature = "std")]
+    pub fn profile_clear(&mut self) {
+        self.profile_map.clear();
+    }
+
+    // Unstable; use at own risk.
+    #[cfg(feature = "std")]
+    pub fn profile_dump(&self) {
+        if self.profile_map.is_empty() {
+            println!("no profile data");
+        } else {
+            for (name, rec) in &self.profile_map {
+                let avg = rec.nanos / rec.count;
+                println!("{} nanos {}, count={}", avg, name, rec.count);
+            }
+        }
+    }
 }
 
 /// How a procedure is defined: as an argument list and a body script.

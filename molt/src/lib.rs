@@ -20,7 +20,7 @@
 //! [`types`]: types/index.html
 //! [`test_harness`]: test_harness/index.html
 
-#![cfg_attr(not(test), no_std)]
+#![cfg_attr(not(any(test, feature = "std")), no_std)]
 
 #![doc(html_root_url = "https://docs.rs/molt/0.3.0")]
 #![doc(html_logo_url = "https://github.com/wduquette/molt/raw/master/MoltLogo.png")]
@@ -29,7 +29,7 @@ extern crate alloc;
 use alloc::{string::ToString as _, borrow::ToOwned as _};
 
 pub use crate::interp::Interp;
-#[cfg(test)]
+#[cfg(any(test, feature = "std"))]
 pub use crate::test_harness::test_harness;
 pub use crate::types::*;
 
@@ -45,11 +45,19 @@ mod tokenizer;
 mod macros;
 mod parser;
 mod scope;
-#[cfg(test)]
+#[cfg(any(test, feature = "std"))]
 pub mod test_harness;
 pub mod types;
 mod util;
 pub mod value;
+
+#[cfg(not(feature = "std"))]
+#[doc(hidden)]
+pub use alloc::format;
+
+#[cfg(feature = "std")]
+#[doc(hidden)]
+pub use std::format;
 
 /// This function is used in command functions to check whether the command's argument
 /// list is of a proper size for the given command.  If it is, `check_args` returns

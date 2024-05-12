@@ -171,68 +171,65 @@ fn parse_bare_item(ctx: &mut Tokenizer) -> MoltResult {
 /// Converts a list, represented as a vector of `Value`s, into a string, doing
 /// all necessary quoting and escaping.
 pub fn list_to_string(list: &[Value]) -> String {
-    let mut vec: Vec<String> = Vec::new();
+    let mut text = String::new();
 
     let mut hash = !list.is_empty() && list[0].as_str().starts_with('#');
 
     for item in list {
-        let item = item.to_string();
-        match get_mode(&item) {
+        if !text.is_empty() {
+            text.push(' ');
+        }
+        let item = item.as_str();
+        match get_mode(item) {
             Mode::AsIs => {
                 if hash {
-                    vec.push(brace_item(&item));
+                    brace_item(item, &mut text);
                     hash = false;
                 } else {
-                    vec.push(item)
+                    text.push_str(item)
                 }
             }
             Mode::Brace => {
-                vec.push(brace_item(&item));
+                brace_item(item, &mut text);
             }
             Mode::Escape => {
-                vec.push(escape_item(hash, &item));
+                escape_item(hash, item, &mut text);
                 hash = false;
             }
         }
     }
 
-    vec.join(" ")
+    text
 }
 
-fn brace_item(item: &str) -> String {
-    let mut word = String::new();
-    word.push('{');
-    word.push_str(item);
-    word.push('}');
-    word
+fn brace_item(item: &str, out: &mut String) {
+    out.push('{');
+    out.push_str(item);
+    out.push('}');
 }
 
-fn escape_item(hash: bool, item: &str) -> String {
-    let mut word = String::new();
-
+fn escape_item(hash: bool, item: &str, out: &mut String) {
     // If hash, the first character is a "#" that must be escaped.
     // Just push the backslash on the front.
     if hash {
-        word.push('\\');
+        out.push('\\');
     }
 
     for ch in item.chars() {
         if ch.is_whitespace() {
-            word.push('\\');
-            word.push(ch);
+            out.push('\\');
+            out.push(ch);
             continue;
         }
 
         match ch {
             '{' | ';' | '$' | '[' | ']' | '\\' => {
-                word.push('\\');
-                word.push(ch);
+                out.push('\\');
+                out.push(ch);
             }
-            _ => word.push(ch),
+            _ => out.push(ch),
         }
     }
-
-    word
 }
 
 #[derive(Eq, PartialEq, Debug)]

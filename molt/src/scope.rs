@@ -13,11 +13,11 @@
 //! `Interp` (or the Molt language itself).
 
 use crate::types::Exception;
-use crate::types::MoltList;
+use crate::types::{MoltList, MoltHasher};
 use crate::value::Value;
 use alloc::string::String;
-use alloc::collections::BTreeMap;
 use alloc::vec::Vec;
+use indexmap::IndexMap;
 use core::fmt::Debug;
 
 /// A variable in a `Scope`.  If the variable is defined in the given `Scope`, it is a
@@ -30,7 +30,7 @@ enum Var {
     Scalar(Value),
 
     /// An array variable, with its hash table from names to values.
-    Array(BTreeMap<String, Value>),
+    Array(IndexMap<String, Value, MoltHasher>),
 
     /// An alias to a variable at a higher stack level, with the referenced stack level.
     /// Note that aliases can chain.
@@ -64,14 +64,14 @@ impl Debug for Var {
 #[derive(Default, Debug)]
 struct Scope {
     /// Vars in this scope by name.
-    map: BTreeMap<String, Var>,
+    map: IndexMap<String, Var, MoltHasher>,
 }
 
 impl Scope {
     /// Create a new empty scope.
     pub fn new() -> Self {
         Scope {
-            map: BTreeMap::new(),
+            map: IndexMap::default(),
         }
     }
 }
@@ -183,7 +183,7 @@ impl ScopeStack {
             Some(var) => {
                 assert_eq!(*var, Var::New);
                 // Create new variable on the top of the stack.
-                let mut map = BTreeMap::new();
+                let mut map = IndexMap::default();
                 map.insert(index.into(), val);
                 *var = Var::Array(map);
                 Ok(())
@@ -367,7 +367,7 @@ impl ScopeStack {
             Some(var) => {
                 assert_eq!(*var, Var::New);
                 // Create new variable on the top of the stack.
-                let mut map = BTreeMap::new();
+                let mut map = IndexMap::default();
                 insert_kvlist(&mut map, kvlist);
                 *var = Var::Array(map);
                 Ok(())
@@ -430,7 +430,7 @@ impl ScopeStack {
 }
 
 // Insert the flat key-value list into the map.
-fn insert_kvlist(map: &mut BTreeMap<String, Value>, list: &[Value]) {
+fn insert_kvlist(map: &mut IndexMap<String, Value, MoltHasher>, list: &[Value]) {
     for kv in list.chunks(2) {
         map.insert(kv[0].as_str().into(), kv[1].clone());
     }

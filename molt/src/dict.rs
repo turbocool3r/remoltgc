@@ -20,7 +20,7 @@ use alloc::string::String;
 
 /// Create an empty dict.
 pub fn dict_new() -> MoltDict {
-    IndexMap::with_hasher(Default::default())
+    IndexMap::default()
 }
 
 /// Given a Value containing a dictionary, a list of keys, and a value,

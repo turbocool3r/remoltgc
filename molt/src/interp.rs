@@ -454,13 +454,13 @@ use crate::scope::ScopeStack;
 use crate::types::*;
 use crate::value::Value;
 use core::any::Any;
-use alloc::collections::BTreeMap;
 use alloc::rc::Rc;
 use alloc::borrow::ToOwned as _;
 use alloc::string::String;
 use alloc::vec::Vec;
 use alloc::boxed::Box;
 use alloc::format;
+use indexmap::IndexMap;
 
 #[cfg(feature = "std")]
 use std::time::Instant;
@@ -494,7 +494,7 @@ use std::time::Instant;
 #[derive(Default)]
 pub struct Interp {
     // Command Table
-    commands: BTreeMap<String, Rc<Command>>,
+    commands: IndexMap<String, Rc<Command>, MoltHasher>,
 
     // Variable Table
     scopes: ScopeStack,
@@ -503,7 +503,7 @@ pub struct Interp {
     last_context_id: u64,
 
     // Context Map
-    context_map: BTreeMap<ContextID, ContextBox>,
+    context_map: IndexMap<ContextID, ContextBox, MoltHasher>,
 
     // Defines the recursion limit for Interp::eval().
     recursion_limit: usize,
@@ -513,7 +513,7 @@ pub struct Interp {
 
     // Profile Map
     #[cfg(feature = "std")]
-    profile_map: BTreeMap<String, ProfileRecord>,
+    profile_map: IndexMap<String, ProfileRecord, MoltHasher>,
 }
 
 /// A command defined in the interpreter.
@@ -642,13 +642,13 @@ impl Interp {
     pub fn empty() -> Self {
         let mut interp = Self {
             recursion_limit: 1000,
-            commands: BTreeMap::new(),
+            commands: IndexMap::default(),
             last_context_id: 0,
-            context_map: BTreeMap::new(),
+            context_map: IndexMap::default(),
             scopes: ScopeStack::new(),
             num_levels: 0,
             #[cfg(feature = "std")]
-            profile_map: BTreeMap::new(),
+            profile_map: IndexMap::default(),
         };
 
         interp.set_scalar("errorInfo", Value::empty()).unwrap();

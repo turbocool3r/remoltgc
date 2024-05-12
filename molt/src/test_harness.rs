@@ -23,9 +23,9 @@
 //! See the Molt Book (or the Molt test suite) for examples of test scripts.
 
 use crate::check_args;
-use crate::molt_ok;
 use crate::types::ContextID;
 use crate::Interp;
+use crate::MoltOptResult;
 use crate::MoltResult;
 use crate::ResultCode;
 use crate::Value;
@@ -218,7 +218,7 @@ impl TestInfo {
 /// point I'll need something much more robust.
 ///
 /// Note: See the Molt Book for the full syntax.
-fn test_cmd(interp: &mut Interp, context_id: ContextID, argv: &[Value]) -> MoltResult {
+fn test_cmd(interp: &mut Interp, context_id: ContextID, argv: &[Value]) -> MoltOptResult {
     // FIRST, check the minimum command line.
     check_args(1, argv, 4, 0, "name description args...")?;
 
@@ -232,7 +232,7 @@ fn test_cmd(interp: &mut Interp, context_id: ContextID, argv: &[Value]) -> MoltR
 }
 
 // The simple version of the test command.
-fn simple_test(interp: &mut Interp, context_id: ContextID, argv: &[Value]) -> MoltResult {
+fn simple_test(interp: &mut Interp, context_id: ContextID, argv: &[Value]) -> MoltOptResult {
     check_args(1, argv, 6, 6, "name description script -ok|-error result")?;
 
     // FIRST, get the test info
@@ -250,16 +250,16 @@ fn simple_test(interp: &mut Interp, context_id: ContextID, argv: &[Value]) -> Mo
         incr_errors(interp, context_id);
         info.print_helper_error("test command", &format!("invalid option: \"{}\"", code));
 
-        return molt_ok!();
+        return molt_opt_ok!();
     };
 
     // NEXT, run the test.
     run_test(interp, context_id, &info);
-    molt_ok!()
+    molt_opt_ok!()
 }
 
 // The fancier, more flexible version of the test.
-fn fancy_test(interp: &mut Interp, context_id: ContextID, argv: &[Value]) -> MoltResult {
+fn fancy_test(interp: &mut Interp, context_id: ContextID, argv: &[Value]) -> MoltOptResult {
     check_args(
         1,
         argv,
@@ -282,7 +282,7 @@ fn fancy_test(interp: &mut Interp, context_id: ContextID, argv: &[Value]) -> Mol
         if val.is_none() {
             incr_errors(interp, context_id);
             info.print_helper_error("test command", &format!("missing value for {}", opt));
-            return molt_ok!();
+            return molt_opt_ok!();
         }
         let val = val.unwrap().as_str();
 
@@ -301,14 +301,14 @@ fn fancy_test(interp: &mut Interp, context_id: ContextID, argv: &[Value]) -> Mol
             _ => {
                 incr_errors(interp, context_id);
                 info.print_helper_error("test command", &format!("invalid option: \"{}\"", val));
-                return molt_ok!();
+                return molt_opt_ok!();
             }
         }
     }
 
     // NEXT, run the test.
     run_test(interp, context_id, &info);
-    molt_ok!()
+    molt_opt_ok!()
 }
 
 // Run the actual test and save the result.

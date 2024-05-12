@@ -146,7 +146,7 @@
 //! ```
 //! use molt::Interp;
 //! use molt::check_args;
-//! use molt::molt_ok;
+//! use molt::{molt_opt_ok, molt_ok};
 //! use molt::types::*;
 //!
 //! # let _ = dummy();
@@ -162,7 +162,7 @@
 //! # }
 //!
 //! // The command: square intValue
-//! fn cmd_square(_: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResult {
+//! fn cmd_square(_: &mut Interp, _: ContextID, argv: &[Value]) -> MoltOptResult {
 //!     // FIRST, check the number of arguments.  Returns an appropriate error
 //!     // for the wrong number of arguments.
 //!     check_args(1, argv, 2, 2, "intValue")?;
@@ -172,7 +172,7 @@
 //!     let intValue = argv[1].as_int()?;
 //!
 //!     // NEXT, return the product.
-//!     molt_ok!(intValue * intValue)
+//!     molt_opt_ok!(intValue * intValue)
 //! }
 //! ```
 //!
@@ -304,7 +304,7 @@
 //! ```
 //! use molt::Interp;
 //! use molt::check_args;
-//! use molt::molt_ok;
+//! use molt::{molt_ok, molt_opt_ok};
 //! use molt::types::*;
 //!
 //! // The context structure to hold the stats
@@ -340,11 +340,11 @@
 //!
 //! // A stub test command.  It ignores its arguments, and
 //! // increments the `num_passed` statistic in its context.
-//! fn cmd_test(interp: &mut Interp, context_id: ContextID, argv: &[Value]) -> MoltResult {
+//! fn cmd_test(interp: &mut Interp, context_id: ContextID, argv: &[Value]) -> MoltOptResult {
 //!     // Pretend it passed
 //!     interp.context::<Stats>(context_id).num_passed += 1;
 //!
-//!     molt_ok!()
+//!     molt_opt_ok!()
 //! }
 //! ```
 //!
@@ -529,7 +529,9 @@ impl Command {
     /// Execute the command according to its kind.
     fn execute(&self, interp: &mut Interp, argv: &[Value]) -> MoltResult {
         match self {
-            Command::Native(func, context_id) => func(interp, *context_id, argv),
+            Command::Native(func, context_id) => {
+                Ok(func(interp, *context_id, argv)?.unwrap_or_default())
+            }
             Command::Proc(proc) => proc.execute(interp, argv),
         }
     }
@@ -1942,7 +1944,7 @@ impl Interp {
         argv: &[Value],
         subc: usize,
         subcommands: &[Subcommand],
-    ) -> MoltResult {
+    ) -> MoltOptResult {
         check_args(subc, argv, subc + 1, 0, "subcommand ?arg ...?")?;
         let rec = Subcommand::find(subcommands, argv[subc].as_str())?;
         (rec.1)(self, context_id, argv)
@@ -2520,7 +2522,7 @@ mod tests {
         let _ctx = interp.context::<String>(id);
     }
 
-    fn dummy_cmd(_: &mut Interp, _: ContextID, _: &[Value]) -> MoltResult {
+    fn dummy_cmd(_: &mut Interp, _: ContextID, _: &[Value]) -> MoltOptResult {
         molt_err!("Not really meant to be called")
     }
 }

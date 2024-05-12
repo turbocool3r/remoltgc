@@ -52,6 +52,19 @@ macro_rules! molt_ok {
     )
 }
 
+#[macro_export]
+macro_rules! molt_opt_ok {
+    () => (
+        Ok(None)
+    );
+    ($arg:expr) => (
+        Ok(Some(Value::from($arg)))
+    );
+    ($($arg:tt)*) => (
+        Ok(Some(Value::from($crate::format!($($arg)*))))
+    )
+}
+
 /// Returns an `Error` `MoltResult`.  The error message is formatted
 /// as with `format!()`.
 ///

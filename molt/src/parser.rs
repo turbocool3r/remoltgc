@@ -55,7 +55,7 @@ use crate::util::is_varname_char;
 use crate::value::Value;
 
 #[cfg(feature = "internals")]
-use crate::types::MoltResult;
+use crate::types::MoltOptResult;
 #[cfg(feature = "internals")]
 use crate::types::ContextID;
 #[cfg(feature = "internals")]
@@ -566,12 +566,12 @@ impl Tokens {
 /// A command for parsing an arbitrary script and outputting the parsed form.
 /// This is an undocumented debugging aid.  The output can be greatly improved.
 #[cfg(feature = "internals")]
-pub fn cmd_parse(_interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResult {
+pub fn cmd_parse(_interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltOptResult {
     check_args(1, argv, 2, 2, "script")?;
 
     let script = &argv[1];
 
-    molt_ok!(alloc::format!("{:?}", parse(script.as_str())?))
+    molt_opt_ok!(alloc::format!("{:?}", parse(script.as_str())?))
 }
 
 #[cfg(test)]

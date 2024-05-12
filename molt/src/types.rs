@@ -93,6 +93,8 @@ pub type MoltDict = IndexMap<Value, Value, core::hash::BuildHasherDefault<core::
 /// [`Value`]: ../value/index.html
 pub type MoltResult = Result<Value, Exception>;
 
+pub type MoltOptResult = Result<Option<Value>, Exception>;
+
 /// This enum represents the different kinds of [`Exception`] that result from
 /// evaluating a Molt script.
 ///
@@ -260,7 +262,7 @@ struct ExceptionInner {
     code: ResultCode,
 
     /// The result value
-    value: Value,
+    value: Option<Value>,
 
     /// The return -level value.  Should be non-zero only for `Return`.
     level: usize,
@@ -408,7 +410,7 @@ impl Exception {
     /// }
     /// ```
     pub fn value(&self) -> Value {
-        self.0.value.clone()
+        self.0.value.clone().unwrap_or_default()
     }
 
     /// Gets the exception's level.  The "level" code is set by the `return` command's
@@ -485,7 +487,7 @@ impl Exception {
 
         Self(Box::new(ExceptionInner {
             code: ResultCode::Error,
-            value: msg,
+            value: Some(msg),
             level: 0,
             next_code: ResultCode::Error,
             error_data: Some(data),
@@ -516,7 +518,7 @@ impl Exception {
 
         Self(Box::new(ExceptionInner {
             code: ResultCode::Error,
-            value: msg,
+            value: Some(msg),
             level: 0,
             next_code: ResultCode::Error,
             error_data: Some(data),
@@ -531,13 +533,7 @@ impl Exception {
     /// `catch` commands, you'll understand what this does and when you would want
     /// to use it.  If you don't, you almost certainly don't need it.
     pub fn molt_return(value: Value) -> Self {
-        Self(Box::new(ExceptionInner {
-            code: ResultCode::Return,
-            value,
-            level: 1,
-            next_code: ResultCode::Okay,
-            error_data: None,
-        }))
+        Self::molt_return_ext(Some(value), 1, ResultCode::Okay)
     }
 
     /// Creates an extended `Return` exception with the given return value, `-level`,
@@ -550,7 +546,7 @@ impl Exception {
     /// ever be needed in client code.  If you fully understand the semantics of the `return` and
     /// `catch` commands, you'll understand what this does and when you would want
     /// to use it.  If you don't, you almost certainly don't need it.
-    pub fn molt_return_ext(value: Value, level: usize, next_code: ResultCode) -> Self {
+    pub fn molt_return_ext(value: Option<Value>, level: usize, next_code: ResultCode) -> Self {
         assert!(level > 0 || next_code != ResultCode::Okay);
 
         Self(Box::new(ExceptionInner {
@@ -575,7 +571,7 @@ impl Exception {
     /// `catch` commands, you'll understand what this does and when you would want
     /// to use it.  If you don't, you almost certainly don't need it.
     pub fn molt_return_err(
-        msg: Value,
+        msg: Option<Value>,
         level: usize,
         error_code: Option<Value>,
         error_info: Option<Value>,
@@ -607,7 +603,7 @@ impl Exception {
     pub fn molt_break() -> Self {
         Self(Box::new(ExceptionInner {
             code: ResultCode::Break,
-            value: Value::empty(),
+            value: None,
             level: 0,
             next_code: ResultCode::Break,
             error_data: None,
@@ -623,7 +619,7 @@ impl Exception {
     pub fn molt_continue() -> Self {
         Self(Box::new(ExceptionInner {
             code: ResultCode::Continue,
-            value: Value::empty(),
+            value: None,
             level: 0,
             next_code: ResultCode::Continue,
             error_data: None,
@@ -761,7 +757,7 @@ pub struct ContextID(pub(crate) u64);
 /// [The Molt Book]: https://wduquette.github.io/molt/
 /// [`interp`]: ../interp/index.html
 /// [`ContextID`]: struct.ContextID.html
-pub type CommandFunc = fn(&mut Interp, ContextID, &[Value]) -> MoltResult;
+pub type CommandFunc = fn(&mut Interp, ContextID, &[Value]) -> MoltOptResult;
 
 /// A Molt command that has subcommands is called an _ensemble_ command.  In Rust code,
 /// the ensemble is defined as an array of `Subcommand` structs, each one mapping from
@@ -986,7 +982,7 @@ mod tests {
     #[test]
     fn test_exception_molt_return_err_level0() {
         let exception = Exception::molt_return_err(
-            "error message".into(),
+            Some("error message".into()),
             0,
             Some("MYERR".into()),
             Some("stack trace".into()),
@@ -1008,7 +1004,7 @@ mod tests {
     #[test]
     fn test_exception_molt_return_err_level2() {
         let exception = Exception::molt_return_err(
-            "error message".into(),
+            Some("error message".into()),
             2,
             Some("MYERR".into()),
             Some("stack trace".into()),
@@ -1049,7 +1045,7 @@ mod tests {
 
     #[test]
     fn test_exception_molt_return_ext() {
-        let exception = Exception::molt_return_ext("result".into(), 2, ResultCode::Break);
+        let exception = Exception::molt_return_ext(Some("result".into()), 2, ResultCode::Break);
 
         assert_eq!(exception.code(), ResultCode::Return);
         assert_eq!(exception.value(), "result".into());

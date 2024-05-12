@@ -16,7 +16,7 @@ use alloc::vec::Vec;
 ///
 /// Appends one or more strings to a variable.
 /// See molt-book for full semantics.
-pub fn cmd_append(interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResult {
+pub fn cmd_append(interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltOptResult {
     check_args(1, argv, 2, 0, "varName ?value value ...?")?;
 
     // FIRST, get the value of the variable.  If the variable is undefined,
@@ -32,11 +32,11 @@ pub fn cmd_append(interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResu
     }
 
     // NEXT, save and return the new value.
-    interp.set_var_return(&argv[1], new_string.into())
+    interp.set_var_return(&argv[1], new_string.into()).map(Some)
 }
 
 /// # array *subcommand* ?*arg*...?
-pub fn cmd_array(interp: &mut Interp, context_id: ContextID, argv: &[Value]) -> MoltResult {
+pub fn cmd_array(interp: &mut Interp, context_id: ContextID, argv: &[Value]) -> MoltOptResult {
     interp.call_subcommand(context_id, argv, 1, &ARRAY_SUBCOMMANDS)
 }
 
@@ -50,27 +50,27 @@ const ARRAY_SUBCOMMANDS: [Subcommand; 6] = [
 ];
 
 /// # array exists arrayName
-pub fn cmd_array_exists(interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResult {
+pub fn cmd_array_exists(interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltOptResult {
     check_args(2, argv, 3, 3, "arrayName")?;
-    molt_ok!(Value::from(interp.array_exists(argv[2].as_str())))
+    molt_opt_ok!(Value::from(interp.array_exists(argv[2].as_str())))
 }
 
 /// # array names arrayName
 /// TODO: Add glob matching as a feature, and support standard TCL options.
-pub fn cmd_array_names(interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResult {
+pub fn cmd_array_names(interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltOptResult {
     check_args(2, argv, 3, 3, "arrayName")?;
-    molt_ok!(Value::from(interp.array_names(argv[2].as_str())))
+    molt_opt_ok!(Value::from(interp.array_names(argv[2].as_str())))
 }
 
 /// # array get arrayname
 /// TODO: Add glob matching as a feature, and support standard TCL options.
-pub fn cmd_array_get(interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResult {
+pub fn cmd_array_get(interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltOptResult {
     check_args(2, argv, 3, 3, "arrayName")?;
-    molt_ok!(Value::from(interp.array_get(argv[2].as_str())))
+    molt_opt_ok!(Value::from(interp.array_get(argv[2].as_str())))
 }
 
 /// # array set arrayName list
-pub fn cmd_array_set(interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResult {
+pub fn cmd_array_set(interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltOptResult {
     check_args(2, argv, 4, 4, "arrayName list")?;
 
     // This odd little dance provides the same semantics as Standard TCL.  If the
@@ -80,7 +80,7 @@ pub fn cmd_array_set(interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltR
 
     if var_name.index().is_none() {
         interp.array_set(var_name.name(), &argv[3].as_list()?)?;
-        molt_ok!()
+        molt_opt_ok!()
     } else {
         // This line will create the array if it doesn't exist, and throw an error if the
         // named variable exists but isn't an array.  This is a little wacky, but it's
@@ -94,13 +94,13 @@ pub fn cmd_array_set(interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltR
 }
 
 /// # array size arrayName
-pub fn cmd_array_size(interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResult {
+pub fn cmd_array_size(interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltOptResult {
     check_args(2, argv, 3, 3, "arrayName")?;
-    molt_ok!(Value::from(interp.array_size(argv[2].as_str()) as MoltInt))
+    molt_opt_ok!(Value::from(interp.array_size(argv[2].as_str()) as MoltInt))
 }
 
 /// # array unset arrayName ?*index*?
-pub fn cmd_array_unset(interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResult {
+pub fn cmd_array_unset(interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltOptResult {
     check_args(2, argv, 3, 4, "arrayName ?index?")?;
 
     if argv.len() == 3 {
@@ -108,18 +108,18 @@ pub fn cmd_array_unset(interp: &mut Interp, _: ContextID, argv: &[Value]) -> Mol
     } else {
         interp.unset_element(argv[2].as_str(), argv[3].as_str());
     }
-    molt_ok!()
+    molt_opt_ok!()
 }
 
 /// assert_eq received, expected
 ///
 /// Asserts that two values have identical string representations.
 /// See molt-book for full semantics.
-pub fn cmd_assert_eq(_interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResult {
+pub fn cmd_assert_eq(_interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltOptResult {
     check_args(1, argv, 3, 3, "received expected")?;
 
     if argv[1] == argv[2] {
-        molt_ok!()
+        molt_opt_ok!()
     } else {
         molt_err!(
             "assertion failed: received \"{}\", expected \"{}\".",
@@ -133,7 +133,7 @@ pub fn cmd_assert_eq(_interp: &mut Interp, _: ContextID, argv: &[Value]) -> Molt
 ///
 /// Breaks a loops.
 /// See molt-book for full semantics.
-pub fn cmd_break(_interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResult {
+pub fn cmd_break(_interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltOptResult {
     check_args(1, argv, 1, 1, "")?;
 
     Err(Exception::molt_break())
@@ -144,7 +144,7 @@ pub fn cmd_break(_interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResu
 /// Executes a script, returning the result code.  If the resultVarName is given, the result
 /// of executing the script is returned in it.  The result code is returned as an integer,
 /// 0=Ok, 1=Error, 2=Return, 3=Break, 4=Continue.
-pub fn cmd_catch(interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResult {
+pub fn cmd_catch(interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltOptResult {
     check_args(1, argv, 2, 4, "script ?resultVarName? ?optionsVarName?")?;
 
     // If the script called `return x`, should get Return, -level 1, -code Okay here
@@ -173,13 +173,13 @@ pub fn cmd_catch(interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResul
         unimplemented!("return options");
     }
 
-    Ok(Value::from(code))
+    Ok(Some(Value::from(code)))
 }
 
 /// # continue
 ///
 /// Continues with the next iteration of the inmost loop.
-pub fn cmd_continue(_interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResult {
+pub fn cmd_continue(_interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltOptResult {
     check_args(1, argv, 1, 1, "")?;
 
     Err(Exception::molt_continue())
@@ -187,7 +187,7 @@ pub fn cmd_continue(_interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltR
 
 /// # dict *subcommand* ?*arg*...?
 #[cfg(feature = "dict")]
-pub fn cmd_dict(interp: &mut Interp, context_id: ContextID, argv: &[Value]) -> MoltResult {
+pub fn cmd_dict(interp: &mut Interp, context_id: ContextID, argv: &[Value]) -> MoltOptResult {
     interp.call_subcommand(context_id, argv, 1, &DICT_SUBCOMMANDS)
 }
 
@@ -206,7 +206,7 @@ const DICT_SUBCOMMANDS: [Subcommand; 9] = [
 
 /// # dict create ?key value ...?
 #[cfg(feature = "dict")]
-fn cmd_dict_new(_: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResult {
+fn cmd_dict_new(_: &mut Interp, _: ContextID, argv: &[Value]) -> MoltOptResult {
     // FIRST, we need an even number of arguments.
     if argv.len() % 2 != 0 {
         return molt_err!(
@@ -218,15 +218,15 @@ fn cmd_dict_new(_: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResult {
 
     // NEXT, return the value.
     if argv.len() > 2 {
-        molt_ok!(Value::from(list_to_dict(&argv[2..])))
+        molt_opt_ok!(Value::from(list_to_dict(&argv[2..])))
     } else {
-        molt_ok!(Value::from(dict_new()))
+        molt_opt_ok!(Value::from(dict_new()))
     }
 }
 
 /// # dict exists *dictionary* key ?*key* ...?
 #[cfg(feature = "dict")]
-fn cmd_dict_exists(_: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResult {
+fn cmd_dict_exists(_: &mut Interp, _: ContextID, argv: &[Value]) -> MoltOptResult {
     check_args(2, argv, 4, 0, "dictionary key ?key ...?")?;
 
     let mut value: Value = argv[2].clone();
@@ -237,19 +237,19 @@ fn cmd_dict_exists(_: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResult {
             if let Some(val) = dict.get(index) {
                 value = val.clone();
             } else {
-                return molt_ok!(false);
+                return molt_opt_ok!(false);
             }
         } else {
-            return molt_ok!(false);
+            return molt_opt_ok!(false);
         }
     }
 
-    molt_ok!(true)
+    molt_opt_ok!(true)
 }
 
 /// # dict get *dictionary* ?*key* ...?
 #[cfg(feature = "dict")]
-fn cmd_dict_get(_: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResult {
+fn cmd_dict_get(_: &mut Interp, _: ContextID, argv: &[Value]) -> MoltOptResult {
     check_args(2, argv, 3, 0, "dictionary ?key ...?")?;
 
     let mut value: Value = argv[2].clone();
@@ -265,23 +265,23 @@ fn cmd_dict_get(_: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResult {
         }
     }
 
-    molt_ok!(value)
+    molt_opt_ok!(value)
 }
 
 /// # dict keys *dictionary*
 /// TODO: Add filtering when we have glob matching.
 #[cfg(feature = "dict")]
-fn cmd_dict_keys(_: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResult {
+fn cmd_dict_keys(_: &mut Interp, _: ContextID, argv: &[Value]) -> MoltOptResult {
     check_args(2, argv, 3, 3, "dictionary")?;
 
     let dict = argv[2].as_dict()?;
     let keys: MoltList = dict.keys().cloned().collect();
-    molt_ok!(keys)
+    molt_opt_ok!(keys)
 }
 
 /// # dict remove *dictionary* ?*key* ...?
 #[cfg(feature = "dict")]
-fn cmd_dict_remove(_: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResult {
+fn cmd_dict_remove(_: &mut Interp, _: ContextID, argv: &[Value]) -> MoltOptResult {
     check_args(2, argv, 3, 0, "dictionary ?key ...?")?;
 
     // FIRST, get and clone the dictionary, so we can modify it.
@@ -294,58 +294,58 @@ fn cmd_dict_remove(_: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResult {
     }
 
     // NEXT, return it as a new Value.
-    molt_ok!(dict)
+    molt_opt_ok!(dict)
 }
 
 /// # dict set *dictVarName* *key* ?*key* ...? *value*
 #[cfg(feature = "dict")]
-fn cmd_dict_set(interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResult {
+fn cmd_dict_set(interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltOptResult {
     check_args(2, argv, 5, 0, "dictVarName key ?key ...? value")?;
 
     let value = &argv[argv.len() - 1];
     let keys = &argv[3..(argv.len() - 1)];
 
     if let Ok(old_dict_val) = interp.var(&argv[2]) {
-        interp.set_var_return(&argv[2], dict_path_insert(&old_dict_val, keys, value)?)
+        interp.set_var_return(&argv[2], dict_path_insert(&old_dict_val, keys, value)?).map(Some)
     } else {
         let new_val = Value::from(dict_new());
-        interp.set_var_return(&argv[2], dict_path_insert(&new_val, keys, value)?)
+        interp.set_var_return(&argv[2], dict_path_insert(&new_val, keys, value)?).map(Some)
     }
 }
 
 /// # dict size *dictionary*
 #[cfg(feature = "dict")]
-fn cmd_dict_size(_: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResult {
+fn cmd_dict_size(_: &mut Interp, _: ContextID, argv: &[Value]) -> MoltOptResult {
     check_args(2, argv, 3, 3, "dictionary")?;
 
     let dict = argv[2].as_dict()?;
-    molt_ok!(dict.len() as MoltInt)
+    molt_opt_ok!(dict.len() as MoltInt)
 }
 
 /// # dict unset *dictVarName* *key* ?*key* ...?
 #[cfg(feature = "dict")]
-fn cmd_dict_unset(interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResult {
+fn cmd_dict_unset(interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltOptResult {
     check_args(2, argv, 4, 0, "dictVarName key ?key ...?")?;
 
     let keys = &argv[3..];
 
     if let Ok(old_dict_val) = interp.var(&argv[2]) {
-        interp.set_var_return(&argv[2], dict_path_remove(&old_dict_val, keys)?)
+        interp.set_var_return(&argv[2], dict_path_remove(&old_dict_val, keys)?).map(Some)
     } else {
         let new_val = Value::from(dict_new());
-        interp.set_var_return(&argv[2], dict_path_remove(&new_val, keys)?)
+        interp.set_var_return(&argv[2], dict_path_remove(&new_val, keys)?).map(Some)
     }
 }
 
 /// # dict values *dictionary*
 /// TODO: Add filtering when we have glob matching.
 #[cfg(feature = "dict")]
-fn cmd_dict_values(_: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResult {
+fn cmd_dict_values(_: &mut Interp, _: ContextID, argv: &[Value]) -> MoltOptResult {
     check_args(2, argv, 3, 3, "dictionary")?;
 
     let dict = argv[2].as_dict()?;
     let values: MoltList = dict.values().cloned().collect();
-    molt_ok!(values)
+    molt_opt_ok!(values)
 }
 
 /// error *message*
@@ -355,7 +355,7 @@ fn cmd_dict_values(_: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResult {
 /// ## TCL Liens
 ///
 /// * In Standard TCL, `error` can optionally set the stack trace and an error code.
-pub fn cmd_error(_interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResult {
+pub fn cmd_error(_interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltOptResult {
     check_args(1, argv, 2, 2, "message")?;
 
     molt_err!(argv[1].clone())
@@ -367,7 +367,7 @@ pub fn cmd_error(_interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResu
 /// If given, _returnCode_ must be an integer return code; if absent, it
 /// defaults to 0.
 #[cfg(feature = "std")]
-pub fn cmd_exit(_interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResult {
+pub fn cmd_exit(_interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltOptResult {
     check_args(1, argv, 1, 2, "?returnCode?")?;
 
     let return_code: MoltInt = if argv.len() == 1 {
@@ -387,17 +387,17 @@ pub fn cmd_exit(_interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResul
 ///
 /// See the Molt Book.
 
-pub fn cmd_expr(interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResult {
+pub fn cmd_expr(interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltOptResult {
     check_args(1, argv, 2, 2, "expr")?;
 
-    interp.expr(&argv[1])
+    interp.expr(&argv[1]).map(Some)
 }
 
 /// # for *start* *test* *next* *command*
 ///
 /// A standard "for" loop.  start, next, and command are scripts; test is an expression
 ///
-pub fn cmd_for(interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResult {
+pub fn cmd_for(interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltOptResult {
     check_args(1, argv, 5, 5, "start test next command")?;
 
     let start = &argv[1];
@@ -433,7 +433,7 @@ pub fn cmd_for(interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResult 
         }
     }
 
-    molt_ok!()
+    molt_opt_ok!()
 }
 
 /// # foreach *varList* *list* *body*
@@ -446,7 +446,7 @@ pub fn cmd_for(interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResult 
 /// ## TCL Liens
 ///
 /// * In Standard TCL, `foreach` can loop over several lists at the same time.
-pub fn cmd_foreach(interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResult {
+pub fn cmd_foreach(interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltOptResult {
     check_args(1, argv, 4, 4, "varList list body")?;
 
     let var_list = &*argv[1].as_list()?;
@@ -476,14 +476,14 @@ pub fn cmd_foreach(interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltRes
         }
     }
 
-    molt_ok!()
+    molt_opt_ok!()
 }
 
 /// # global ?*varName* ...?
 ///
 /// Appends any number of values to a variable's value, which need not
 /// initially exist.
-pub fn cmd_global(interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResult {
+pub fn cmd_global(interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltOptResult {
     // Accepts any number of arguments
 
     // FIRST, if we're at the global scope this is a no-op.
@@ -493,7 +493,7 @@ pub fn cmd_global(interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResu
             interp.upvar(0, name.as_str());
         }
     }
-    molt_ok!()
+    molt_opt_ok!()
 }
 
 #[derive(Eq, PartialEq, Debug)]
@@ -514,7 +514,7 @@ enum IfWants {
 ///
 /// * Because we don't yet have an expression parser, the *expr* arguments are evaluated as
 ///   scripts that must return a boolean value.
-pub fn cmd_if(interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResult {
+pub fn cmd_if(interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltOptResult {
     let mut argi = 1;
     let mut wants = IfWants::Expr;
 
@@ -533,7 +533,7 @@ pub fn cmd_if(interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResult {
                 }
 
                 if argi < argv.len() {
-                    return interp.eval_value(&argv[argi]);
+                    return interp.eval_value(&argv[argi]).map(Some);
                 } else {
                     break;
                 }
@@ -571,7 +571,7 @@ pub fn cmd_if(interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResult {
                 }
 
                 if argi < argv.len() {
-                    return interp.eval_value(&argv[argi]);
+                    return interp.eval_value(&argv[argi]).map(Some);
                 } else {
                     break;
                 }
@@ -595,14 +595,14 @@ pub fn cmd_if(interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResult {
         )
     } else {
         // Looking for ElseBody, but there doesn't need to be one.
-        molt_ok!() // temp
+        molt_opt_ok!() // temp
     }
 }
 
 /// # incr *varName* ?*increment* ...?
 ///
 /// Increments an integer variable by a value.
-pub fn cmd_incr(interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResult {
+pub fn cmd_incr(interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltOptResult {
     check_args(1, argv, 2, 3, "varName ?increment?")?;
 
     let increment: MoltInt = if argv.len() == 3 {
@@ -617,11 +617,11 @@ pub fn cmd_incr(interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResult
             .and_then(|val| val.as_int())
             .unwrap_or(0);
 
-    interp.set_var_return(&argv[1], new_value.into())
+    interp.set_var_return(&argv[1], new_value.into()).map(Some)
 }
 
 /// # info *subcommand* ?*arg*...?
-pub fn cmd_info(interp: &mut Interp, context_id: ContextID, argv: &[Value]) -> MoltResult {
+pub fn cmd_info(interp: &mut Interp, context_id: ContextID, argv: &[Value]) -> MoltOptResult {
     interp.call_subcommand(context_id, argv, 1, &INFO_SUBCOMMANDS)
 }
 
@@ -640,85 +640,85 @@ const INFO_SUBCOMMANDS: [Subcommand; 11] = [
 ];
 
 /// # info args *procname*
-pub fn cmd_info_args(interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResult {
+pub fn cmd_info_args(interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltOptResult {
     check_args(2, argv, 3, 3, "procname")?;
-    interp.proc_args(argv[2].as_str())
+    interp.proc_args(argv[2].as_str()).map(Some)
 }
 
 /// # info body *procname*
-pub fn cmd_info_body(interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResult {
+pub fn cmd_info_body(interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltOptResult {
     check_args(2, argv, 3, 3, "procname")?;
-    interp.proc_body(argv[2].as_str())
+    interp.proc_body(argv[2].as_str()).map(Some)
 }
 
 /// # info cmdtype *command*
-pub fn cmd_info_cmdtype(interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResult {
+pub fn cmd_info_cmdtype(interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltOptResult {
     check_args(2, argv, 3, 3, "command")?;
-    interp.command_type(argv[2].as_str())
+    interp.command_type(argv[2].as_str()).map(Some)
 }
 
 /// # info commands ?*pattern*?
-pub fn cmd_info_commands(interp: &mut Interp, _: ContextID, _argv: &[Value]) -> MoltResult {
-    molt_ok!(Value::from(interp.command_names()))
+pub fn cmd_info_commands(interp: &mut Interp, _: ContextID, _argv: &[Value]) -> MoltOptResult {
+    molt_opt_ok!(Value::from(interp.command_names()))
 }
 
 /// # info default *procname* *arg* *varname*
-pub fn cmd_info_default(interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResult {
+pub fn cmd_info_default(interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltOptResult {
     check_args(2, argv, 5, 5, "procname arg varname")?;
 
     if let Some(val) = interp.proc_default(argv[2].as_str(), argv[3].as_str())? {
         interp.set_var(&argv[4], val)?;
-        molt_ok!(1)
+        molt_opt_ok!(1)
     } else {
         interp.set_var(&argv[4], Value::empty())?;
-        molt_ok!(0)
+        molt_opt_ok!(0)
     }
 }
 
 /// # info exists *varname*
-pub fn cmd_info_exists(interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResult {
+pub fn cmd_info_exists(interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltOptResult {
     check_args(2, argv, 3, 3, "varname")?;
-    Ok(interp.var_exists(&argv[2]).into())
+    Ok(Some(interp.var_exists(&argv[2]).into()))
 }
 
 /// # info complete *command*
-pub fn cmd_info_complete(interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResult {
+pub fn cmd_info_complete(interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltOptResult {
     check_args(2, argv, 3, 3, "command")?;
 
     if interp.complete(argv[2].as_str()) {
-        molt_ok!(true)
+        molt_opt_ok!(true)
     } else {
-        molt_ok!(false)
+        molt_opt_ok!(false)
     }
 }
 
 /// # info globals
 /// TODO: Add glob matching as a feature, and provide optional pattern argument.
-pub fn cmd_info_globals(interp: &mut Interp, _: ContextID, _argv: &[Value]) -> MoltResult {
-    molt_ok!(Value::from(interp.vars_in_global_scope()))
+pub fn cmd_info_globals(interp: &mut Interp, _: ContextID, _argv: &[Value]) -> MoltOptResult {
+    molt_opt_ok!(Value::from(interp.vars_in_global_scope()))
 }
 
 /// # info locals
 /// TODO: Add glob matching as a feature, and provide optional pattern argument.
-pub fn cmd_info_locals(interp: &mut Interp, _: ContextID, _argv: &[Value]) -> MoltResult {
-    molt_ok!(Value::from(interp.vars_in_local_scope()))
+pub fn cmd_info_locals(interp: &mut Interp, _: ContextID, _argv: &[Value]) -> MoltOptResult {
+    molt_opt_ok!(Value::from(interp.vars_in_local_scope()))
 }
 
 /// # info procs ?*pattern*?
-pub fn cmd_info_procs(interp: &mut Interp, _: ContextID, _argv: &[Value]) -> MoltResult {
-    molt_ok!(Value::from(interp.proc_names()))
+pub fn cmd_info_procs(interp: &mut Interp, _: ContextID, _argv: &[Value]) -> MoltOptResult {
+    molt_opt_ok!(Value::from(interp.proc_names()))
 }
 
 /// # info vars
 /// TODO: Add glob matching as a feature, and provide optional pattern argument.
-pub fn cmd_info_vars(interp: &mut Interp, _: ContextID, _argv: &[Value]) -> MoltResult {
-    molt_ok!(Value::from(interp.vars_in_scope()))
+pub fn cmd_info_vars(interp: &mut Interp, _: ContextID, _argv: &[Value]) -> MoltOptResult {
+    molt_opt_ok!(Value::from(interp.vars_in_scope()))
 }
 
 /// # join *list* ?*joinString*?
 ///
 /// Joins the elements of a list with a string.  The join string defaults to " ".
-pub fn cmd_join(_interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResult {
+pub fn cmd_join(_interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltOptResult {
     check_args(1, argv, 2, 3, "list ?joinString?")?;
 
     let list = &argv[1].as_list()?;
@@ -732,14 +732,14 @@ pub fn cmd_join(_interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResul
     // TODO: Need to implement a standard join() method for MoltLists.
     let list: Vec<String> = list.iter().map(|v| v.to_string()).collect();
 
-    molt_ok!(list.join(&join_string))
+    molt_opt_ok!(list.join(&join_string))
 }
 
 /// # lappend *varName* ?*value* ...?
 ///
 /// Appends any number of values to a variable's list value, which need not
 /// initially exist.
-pub fn cmd_lappend(interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResult {
+pub fn cmd_lappend(interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltOptResult {
     check_args(1, argv, 2, 0, "varName ?value ...?")?;
 
     let var_result = interp.var(&argv[1]);
@@ -752,13 +752,13 @@ pub fn cmd_lappend(interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltRes
 
     let mut values = argv[2..].to_owned();
     list.append(&mut values);
-    interp.set_var_return(&argv[1], Value::from(list))
+    interp.set_var_return(&argv[1], Value::from(list)).map(Some)
 }
 
 /// # lindex *list* ?*index* ...?
 ///
 /// Returns an element from the list, indexing into nested lists.
-pub fn cmd_lindex(_interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResult {
+pub fn cmd_lindex(_interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltOptResult {
     check_args(1, argv, 2, 0, "list ?index ...?")?;
 
     if argv.len() != 3 {
@@ -768,7 +768,7 @@ pub fn cmd_lindex(_interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltRes
     }
 }
 
-pub fn lindex_into(list: &Value, indices: &[Value]) -> MoltResult {
+pub fn lindex_into(list: &Value, indices: &[Value]) -> MoltOptResult {
     let mut value: Value = list.clone();
 
     for index_val in indices {
@@ -782,54 +782,54 @@ pub fn lindex_into(list: &Value, indices: &[Value]) -> MoltResult {
         };
     }
 
-    molt_ok!(value)
+    molt_opt_ok!(value)
 }
 
 /// # list ?*arg*...?
 ///
 /// Converts its arguments into a canonical list.
-pub fn cmd_list(_interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResult {
+pub fn cmd_list(_interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltOptResult {
     // No arg check needed; can take any number.
-    molt_ok!(&argv[1..])
+    molt_opt_ok!(&argv[1..])
 }
 
 /// # llength *list*
 ///
 /// Returns the length of the list.
-pub fn cmd_llength(_interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResult {
+pub fn cmd_llength(_interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltOptResult {
     check_args(1, argv, 2, 2, "list")?;
 
-    molt_ok!(argv[1].as_list()?.len() as MoltInt)
+    molt_opt_ok!(argv[1].as_list()?.len() as MoltInt)
 }
 
 /// # pdump
 ///
 /// Dumps profile data.  Developer use only.
 #[cfg(feature = "std")]
-pub fn cmd_pdump(interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResult {
+pub fn cmd_pdump(interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltOptResult {
     check_args(1, argv, 1, 1, "")?;
 
     interp.profile_dump();
 
-    molt_ok!()
+    molt_opt_ok!()
 }
 
 /// # pclear
 ///
 /// Clears profile data.  Developer use only.
 #[cfg(feature = "std")]
-pub fn cmd_pclear(interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResult {
+pub fn cmd_pclear(interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltOptResult {
     check_args(1, argv, 1, 1, "")?;
 
     interp.profile_clear();
 
-    molt_ok!()
+    molt_opt_ok!()
 }
 
 /// # proc *name* *args* *body*
 ///
 /// Defines a procedure.
-pub fn cmd_proc(interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResult {
+pub fn cmd_proc(interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltOptResult {
     check_args(1, argv, 4, 4, "name args body")?;
 
     // FIRST, get the arguments
@@ -850,7 +850,7 @@ pub fn cmd_proc(interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResult
     // NEXT, add the command.
     interp.add_proc(name, args, &argv[3]);
 
-    molt_ok!()
+    molt_opt_ok!()
 }
 
 /// # puts *string*
@@ -862,18 +862,18 @@ pub fn cmd_proc(interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResult
 /// * Does not support `-nonewline`
 /// * Does not support `channelId`
 #[cfg(feature = "std")]
-pub fn cmd_puts(_interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResult {
+pub fn cmd_puts(_interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltOptResult {
     check_args(1, argv, 2, 2, "string")?;
 
     println!("{}", argv[1]);
-    molt_ok!()
+    molt_opt_ok!()
 }
 
 /// # rename *oldName* *newName*
 ///
 /// Renames the command called *oldName* to have the *newName*.  If the
 /// *newName* is "", the command is destroyed.
-pub fn cmd_rename(interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResult {
+pub fn cmd_rename(interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltOptResult {
     check_args(1, argv, 3, 3, "oldName newName")?;
 
     // FIRST, get the arguments
@@ -891,7 +891,7 @@ pub fn cmd_rename(interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResu
         interp.rename_command(old_name, new_name);
     }
 
-    molt_ok!()
+    molt_opt_ok!()
 }
 
 /// # return ?-code code? ?-level level? ?value?
@@ -902,7 +902,7 @@ pub fn cmd_rename(interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResu
 /// ## TCL Liens
 ///
 /// * Doesn't support all of TCL's fancy return machinery. Someday it will.
-pub fn cmd_return(_interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResult {
+pub fn cmd_return(_interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltOptResult {
     check_args(1, argv, 1, 0, "?options...? ?value?")?;
 
     // FIRST, set the defaults
@@ -914,7 +914,7 @@ pub fn cmd_return(_interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltRes
     // NEXT, with no arguments just return.
     if argv.len() == 1 {
         return Err(Exception::molt_return_ext(
-            Value::empty(),
+            None,
             level as usize,
             code,
         ));
@@ -922,15 +922,14 @@ pub fn cmd_return(_interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltRes
 
     // NEXT, get the return value: the last argument, if there's an odd number of arguments
     // after the command name.
-    let return_value: Value;
+    let mut return_value = None;
 
     let opt_args: &[Value] = if argv.len() % 2 == 0 {
         // odd number of args following the command name
-        return_value = argv[argv.len() - 1].clone();
+        return_value = Some(argv[argv.len() - 1].clone());
         &argv[1..argv.len() - 1]
     } else {
         // even number of args following the command name
-        return_value = Value::empty();
         &argv[1..argv.len()]
     };
 
@@ -982,13 +981,13 @@ pub fn cmd_return(_interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltRes
 /// Sets variable *varName* to *newValue*, returning the value.
 /// If *newValue* is omitted, returns the variable's current value,
 /// returning an error if the variable is unknown.
-pub fn cmd_set(interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResult {
+pub fn cmd_set(interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltOptResult {
     check_args(1, argv, 2, 3, "varName ?newValue?")?;
 
     if argv.len() == 3 {
-        interp.set_var_return(&argv[1], argv[2].clone())
+        interp.set_var_return(&argv[1], argv[2].clone()).map(Some)
     } else {
-        molt_ok!(interp.var(&argv[1])?)
+        molt_opt_ok!(interp.var(&argv[1])?)
     }
 }
 
@@ -996,19 +995,19 @@ pub fn cmd_set(interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResult 
 ///
 /// Sources the file, returning the result.
 #[cfg(feature = "std")]
-pub fn cmd_source(interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResult {
+pub fn cmd_source(interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltOptResult {
     check_args(1, argv, 2, 2, "filename")?;
 
     let filename = argv[1].as_str();
 
     match std::fs::read_to_string(filename) {
-        Ok(script) => interp.eval(&script),
+        Ok(script) => interp.eval(&script).map(Some),
         Err(e) => molt_err!("couldn't read file \"{}\": {}", filename, e),
     }
 }
 
 /// # string *subcommand* ?*arg*...?
-pub fn cmd_string(interp: &mut Interp, context_id: ContextID, argv: &[Value]) -> MoltResult {
+pub fn cmd_string(interp: &mut Interp, context_id: ContextID, argv: &[Value]) -> MoltOptResult {
     interp.call_subcommand(context_id, argv, 1, STRING_SUBCOMMANDS)
 }
 
@@ -1035,23 +1034,23 @@ const STRING_SUBCOMMANDS: &[Subcommand] = &[
 
 /// Temporary: stub for string subcommands.
 #[allow(unused)]
-pub fn cmd_string_todo(_interp: &mut Interp, _: ContextID, _argv: &[Value]) -> MoltResult {
+pub fn cmd_string_todo(_interp: &mut Interp, _: ContextID, _argv: &[Value]) -> MoltOptResult {
     molt_err!("TODO")
 }
 
 /// string cat ?*arg* ...?
-pub fn cmd_string_cat(_interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResult {
+pub fn cmd_string_cat(_interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltOptResult {
     let mut buff = String::new();
 
     for arg in &argv[2..] {
         buff.push_str(arg.as_str());
     }
 
-    molt_ok!(buff)
+    molt_opt_ok!(buff)
 }
 
 /// string compare ?-nocase? ?-length length? string1 string2
-pub fn cmd_string_compare(_interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResult {
+pub fn cmd_string_compare(_interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltOptResult {
     check_args(2, argv, 4, 7, "?-nocase? ?-length length? string1 string2")?;
 
     // FIRST, set the defaults.
@@ -1085,14 +1084,14 @@ pub fn cmd_string_compare(_interp: &mut Interp, _: ContextID, argv: &[Value]) ->
         let val1 = Value::from(val1.as_str().to_lowercase());
         let val2 = Value::from(val2.as_str().to_lowercase());
 
-        molt_ok!(util::compare_len(val1.as_str(), val2.as_str(), length)?)
+        molt_opt_ok!(util::compare_len(val1.as_str(), val2.as_str(), length)?)
     } else {
-        molt_ok!(util::compare_len(argv[arglen - 2].as_str(), argv[arglen - 1].as_str(), length)?)
+        molt_opt_ok!(util::compare_len(argv[arglen - 2].as_str(), argv[arglen - 1].as_str(), length)?)
     }
 }
 
 /// string equal ?-nocase? ?-length length? string1 string2
-pub fn cmd_string_equal(_interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResult {
+pub fn cmd_string_equal(_interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltOptResult {
     check_args(2, argv, 4, 7, "?-nocase? ?-length length? string1 string2")?;
 
     // FIRST, set the defaults.
@@ -1127,15 +1126,15 @@ pub fn cmd_string_equal(_interp: &mut Interp, _: ContextID, argv: &[Value]) -> M
         let val2 = Value::from(val2.as_str().to_lowercase());
 
         let flag = util::compare_len(val1.as_str(), val2.as_str(), length)? == 0;
-        molt_ok!(flag)
+        molt_opt_ok!(flag)
     } else {
         let flag = util::compare_len(argv[arglen - 2].as_str(), argv[arglen - 1].as_str(), length)? == 0;
-        molt_ok!(flag)
+        molt_opt_ok!(flag)
     }
 }
 
 /// string first *needleString* *haystackString* ?*startIndex*?
-pub fn cmd_string_first(_interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResult {
+pub fn cmd_string_first(_interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltOptResult {
     check_args(2, argv, 4, 5, "needleString haystackString ?startIndex?")?;
 
     let needle = argv[2].as_str();
@@ -1163,11 +1162,11 @@ pub fn cmd_string_first(_interp: &mut Interp, _: ContextID, argv: &[Value]) -> M
             + start_char as MoltInt
     };
 
-    molt_ok!(pos_char)
+    molt_opt_ok!(pos_char)
 }
 
 /// string last *needleString* *haystackString* ?*lastIndex*?
-pub fn cmd_string_last(_interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResult {
+pub fn cmd_string_last(_interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltOptResult {
     check_args(2, argv, 4, 5, "needleString haystackString ?lastIndex?")?;
 
     let needle = argv[2].as_str();
@@ -1179,7 +1178,7 @@ pub fn cmd_string_last(_interp: &mut Interp, _: ContextID, argv: &[Value]) -> Mo
         let arg = argv[4].as_int()?;
 
         if arg < 0 {
-            return molt_ok!(-1);
+            return molt_opt_ok!(-1);
         }
 
         if arg as usize >= count {
@@ -1209,20 +1208,20 @@ pub fn cmd_string_last(_interp: &mut Interp, _: ContextID, argv: &[Value]) -> Mo
             .count() as MoltInt
     };
 
-    molt_ok!(pos_char)
+    molt_opt_ok!(pos_char)
 }
 
 /// string length *string*
-pub fn cmd_string_length(_interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResult {
+pub fn cmd_string_length(_interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltOptResult {
     check_args(2, argv, 3, 3, "string")?;
 
     let len: MoltInt = argv[2].as_str().chars().count() as MoltInt;
-    molt_ok!(len)
+    molt_opt_ok!(len)
 }
 
 /// string map ?-nocase? *charMap* *string*
 #[cfg(feature = "dict")]
-pub fn cmd_string_map(_interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResult {
+pub fn cmd_string_map(_interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltOptResult {
     check_args(2, argv, 4, 5, "?-nocase? charMap string")?;
 
     let mut nocase = false;
@@ -1294,11 +1293,11 @@ pub fn cmd_string_map(_interp: &mut Interp, _: ContextID, argv: &[Value]) -> Mol
         }
     }
 
-    molt_ok!(result)
+    molt_opt_ok!(result)
 }
 
 /// string range *string* *first* *last*
-pub fn cmd_string_range(_interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResult {
+pub fn cmd_string_range(_interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltOptResult {
     check_args(2, argv, 5, 5, "string first last")?;
 
     let string = argv[2].as_str();
@@ -1306,7 +1305,7 @@ pub fn cmd_string_range(_interp: &mut Interp, _: ContextID, argv: &[Value]) -> M
     let last = argv[4].as_int()?;
 
     if last < 0 {
-        return molt_ok!("");
+        return molt_opt_ok!("");
     }
 
     let clamp = { |i: MoltInt| if i < 0 {
@@ -1322,27 +1321,27 @@ pub fn cmd_string_range(_interp: &mut Interp, _: ContextID, argv: &[Value]) -> M
         .take((clamp(last) - clamp(first) + 1) as usize)
         .collect::<String>();
 
-    molt_ok!(substr)
+    molt_opt_ok!(substr)
 }
 
 /// string tolower *string*
-pub fn cmd_string_tolower(_interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResult {
+pub fn cmd_string_tolower(_interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltOptResult {
     check_args(2, argv, 3, 3, "string")?;
 
     let lower = argv[2].as_str().to_lowercase();
-    molt_ok!(lower)
+    molt_opt_ok!(lower)
 }
 
 /// string toupper *string*
-pub fn cmd_string_toupper(_interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResult {
+pub fn cmd_string_toupper(_interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltOptResult {
     check_args(2, argv, 3, 3, "string")?;
 
     let upper = argv[2].as_str().to_uppercase();
-    molt_ok!(upper)
+    molt_opt_ok!(upper)
 }
 
 /// string (trim|trimleft|trimright) *string*
-pub fn cmd_string_trim(_interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResult {
+pub fn cmd_string_trim(_interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltOptResult {
     check_args(2, argv, 3, 3, "string")?;
 
     let s = argv[2].as_str();
@@ -1352,13 +1351,13 @@ pub fn cmd_string_trim(_interp: &mut Interp, _: ContextID, argv: &[Value]) -> Mo
         _ => s.trim(),
     };
 
-    molt_ok!(trimmed)
+    molt_opt_ok!(trimmed)
 }
 
 /// throw *type* *message*
 ///
 /// Throws an error with the error code and message.
-pub fn cmd_throw(_interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResult {
+pub fn cmd_throw(_interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltOptResult {
     check_args(1, argv, 3, 3, "type message")?;
 
     Err(Exception::molt_err2(argv[1].clone(), argv[2].clone()))
@@ -1369,7 +1368,7 @@ pub fn cmd_throw(_interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResu
 /// Executes the command the given number of times, and returns the average
 /// number of microseconds per iteration.  The *count* defaults to 1.
 #[cfg(feature = "std")]
-pub fn cmd_time(interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResult {
+pub fn cmd_time(interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltOptResult {
     check_args(1, argv, 2, 3, "command ?count?")?;
 
     let command = &argv[1];
@@ -1394,7 +1393,7 @@ pub fn cmd_time(interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResult
         0
     } as MoltInt;
 
-    molt_ok!("{} nanoseconds per iteration", avg)
+    molt_opt_ok!("{} nanoseconds per iteration", avg)
 }
 
 /// # unset ?-nocomplain? *varName*
@@ -1402,7 +1401,7 @@ pub fn cmd_time(interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResult
 /// Removes the variable from the interpreter.  This is a no op if
 /// there is no such variable.  The -nocomplain option is accepted for
 /// compatible with standard TCL, but is never required.
-pub fn cmd_unset(interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResult {
+pub fn cmd_unset(interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltOptResult {
     check_args(1, argv, 1, 0, "?-nocomplain? ?--? ?name name name...?")?;
 
     let mut options_ok = true;
@@ -1422,14 +1421,14 @@ pub fn cmd_unset(interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResul
         interp.unset_var(arg);
     }
 
-    molt_ok!()
+    molt_opt_ok!()
 }
 
 /// # while *test* *command*
 ///
 /// A standard "while" loop.  *test* is a boolean expression; *command* is a script to
 /// execute so long as the expression is true.
-pub fn cmd_while(interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResult {
+pub fn cmd_while(interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltOptResult {
     check_args(1, argv, 3, 3, "test command")?;
 
     while interp.expr_bool(&argv[1])? {
@@ -1444,5 +1443,5 @@ pub fn cmd_while(interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResul
         }
     }
 
-    molt_ok!()
+    molt_opt_ok!()
 }

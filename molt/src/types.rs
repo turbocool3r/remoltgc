@@ -58,7 +58,8 @@ pub type MoltList = Vec<Value>;
 ///
 /// A dictionary is a mapping from `Value` to `Value` that preserves the key insertion
 /// order.
-pub type MoltDict = IndexMap<Value, Value>;
+#[allow(deprecated)]
+pub type MoltDict = IndexMap<Value, Value, core::hash::BuildHasherDefault<core::hash::SipHasher>>;
 
 /// The standard `Result<T,E>` type for Molt code.
 ///

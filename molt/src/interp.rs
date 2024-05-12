@@ -876,7 +876,7 @@ impl Interp {
             let name = words[0].as_str();
 
             let cmd = self.commands.get(name)
-                .ok_or_else(|| Exception::molt_err(Value::from(format!("invalid cmmmand name \"{}\"", name))))?;
+                .ok_or_else(|| Exception::molt_err(Value::from(format!("invalid command name \"{}\"", name))))?;
 
             // let start = Instant::now();
             let cmd = Rc::clone(cmd);

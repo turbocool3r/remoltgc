@@ -40,7 +40,7 @@ pub fn cmd_array(interp: &mut Interp, context_id: ContextID, argv: &[Value]) -> 
     interp.call_subcommand(context_id, argv, 1, &ARRAY_SUBCOMMANDS)
 }
 
-const ARRAY_SUBCOMMANDS: [Subcommand; 6] = [
+static ARRAY_SUBCOMMANDS: [Subcommand; 6] = [
     Subcommand("exists", cmd_array_exists),
     Subcommand("get", cmd_array_get),
     Subcommand("names", cmd_array_names),
@@ -192,7 +192,7 @@ pub fn cmd_dict(interp: &mut Interp, context_id: ContextID, argv: &[Value]) -> M
 }
 
 #[cfg(feature = "dict")]
-const DICT_SUBCOMMANDS: [Subcommand; 9] = [
+static DICT_SUBCOMMANDS: [Subcommand; 9] = [
     Subcommand("create", cmd_dict_new),
     Subcommand("exists", cmd_dict_exists),
     Subcommand("get", cmd_dict_get),
@@ -627,7 +627,7 @@ pub fn cmd_info(interp: &mut Interp, context_id: ContextID, argv: &[Value]) -> M
 }
 
 #[cfg(feature = "info")]
-const INFO_SUBCOMMANDS: [Subcommand; 11] = [
+static INFO_SUBCOMMANDS: [Subcommand; 11] = [
     Subcommand("args", cmd_info_args),
     Subcommand("body", cmd_info_body),
     Subcommand("cmdtype", cmd_info_cmdtype),
@@ -1024,7 +1024,7 @@ pub fn cmd_string(interp: &mut Interp, context_id: ContextID, argv: &[Value]) ->
     interp.call_subcommand(context_id, argv, 1, STRING_SUBCOMMANDS)
 }
 
-const STRING_SUBCOMMANDS: &[Subcommand] = &[
+static STRING_SUBCOMMANDS: &[Subcommand] = &[
     Subcommand("cat", cmd_string_cat),
     Subcommand("compare", cmd_string_compare),
     Subcommand("equal", cmd_string_equal),

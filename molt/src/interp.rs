@@ -445,7 +445,6 @@ use crate::commands;
 #[cfg(feature = "dict")]
 use crate::dict::dict_new;
 use crate::expr;
-use crate::list::list_to_string;
 use crate::molt_err;
 use crate::molt_ok;
 use crate::parser;
@@ -462,13 +461,6 @@ use alloc::string::String;
 use alloc::vec::Vec;
 use alloc::boxed::Box;
 use alloc::format;
-
-// Constants
-const OPT_CODE: &str = "-code";
-const OPT_LEVEL: &str = "-level";
-const OPT_ERRORCODE: &str = "-errorcode";
-const OPT_ERRORINFO: &str = "-errorinfo";
-const ZERO: &str = "0";
 
 /// The Molt Interpreter.
 ///
@@ -723,7 +715,8 @@ impl Interp {
         //interp.add_command("exit", commands::cmd_exit);
 
         // TODO: Developer Tools
-        //interp.add_command("parse", parser::cmd_parse);
+        #[cfg(feature = "internals")]
+        interp.add_command("parse", parser::cmd_parse);
         //interp.add_command("pdump", commands::cmd_pdump);
         //interp.add_command("pclear", commands::cmd_pclear);
 
@@ -892,46 +885,35 @@ impl Interp {
 
             match result {
                 Ok(v) => result_value = Some(v),
-                Err(mut exception) => {
+                #[cfg(feature = "error-stack-trace")]
+                Err(mut exception) if exception.code() == ResultCode::Error => {
                     // TODO: I think this needs to be done up above.
                     // // Handle the return -code, -level protocol
                     // if exception.code() == ResultCode::Return {
                     //     exception.decrement_level();
                     // }
 
-                    match exception.code() {
-                        // ResultCode::Okay => result_value = exception.value(),
-                        #[cfg(feature = "error-stack-trace")]
-                        ResultCode::Error => {
-                            // FIRST, new error, an error from within a proc, or an error from
-                            // within some other body (ignored).
-                            if exception.is_new_error() {
-                                exception.add_error_info("    while executing");
-                            } else if cmd.is_proc() {
-                                exception.add_error_info("    invoked from within");
-                                exception.add_error_info(&format!(
-                                    "    (procedure \"{}\" line TODO)",
-                                    name
+                    // FIRST, new error, an error from within a proc, or an error from
+                    // within some other body (ignored).
+                    if exception.is_new_error() {
+                        exception.add_error_info("    while executing");
+                    } else if cmd.is_proc() {
+                        exception.add_error_info("    invoked from within");
+                        exception.add_error_info(&format!(
+                                "    (procedure \"{}\" line TODO)",
+                                name
                                 ));
-                            } else {
-                                return Err(exception);
-                            }
-
-                            // TODO: Add command.  In standard TCL, this is the text of the command
-                            // before interpolation; at present, we don't have that info in a
-                            // convenient form.  For now, just convert the final words to a string.
-                            exception.add_error_info(&format!("\"{}\"", &list_to_string(&words)));
-                            return Err(exception);
-                        }
-                        #[cfg(not(feature = "error-stack-trace"))]
-                        ResultCode::Error => {
-                            exception.mark_not_new();
-                            return Err(exception);
-                        }
-
-                        _ => return Err(exception),
+                    } else {
+                        return Err(exception);
                     }
+
+                    // TODO: Add command.  In standard TCL, this is the text of the command
+                    // before interpolation; at present, we don't have that info in a
+                    // convenient form.  For now, just convert the final words to a string.
+                    exception.add_error_info(&format!("\"{}\"", &crate::list::list_to_string(&words)));
+                    return Err(exception);
                 }
+                Err(e) => return Err(e),
             }
         }
 
@@ -981,6 +963,13 @@ impl Interp {
     /// Used by the `catch` command.
     #[cfg(feature = "dict")]
     pub(crate) fn return_options(&self, result: &MoltResult) -> Value {
+        // Constants
+        const OPT_CODE: &str = "-code";
+        const OPT_LEVEL: &str = "-level";
+        const OPT_ERRORCODE: &str = "-errorcode";
+        const OPT_ERRORINFO: &str = "-errorinfo";
+        const ZERO: &str = "0";
+
         let mut opts = dict_new();
 
         match result {

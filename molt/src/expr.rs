@@ -103,10 +103,10 @@ impl Datum {
 const MAX_MATH_ARGS: usize = 2;
 
 /// The argument type.
+#[cfg(feature = "float")]
 #[derive(Debug, PartialEq, Eq, Copy, Clone)]
 enum ArgType {
     None,
-    #[cfg(feature = "float")]
     Float,  // Must convert to Type::Float
     Int,    // Must convert to Type::Int
     Number, // Either Type::Int or Type::Float is OK
@@ -117,6 +117,7 @@ type MathFunc = fn(args: &[Datum; MAX_MATH_ARGS]) -> DatumResult;
 struct BuiltinFunc {
     name: &'static str,
     num_args: usize,
+    #[cfg(feature = "float")]
     arg_types: [ArgType; MAX_MATH_ARGS],
     func: MathFunc,
 }
@@ -125,6 +126,7 @@ const FUNC_TABLE: &[BuiltinFunc] = &[
     BuiltinFunc {
         name: "abs",
         num_args: 1,
+        #[cfg(feature = "float")]
         arg_types: [ArgType::Number, ArgType::None],
         func: expr_abs_func,
     },
@@ -138,6 +140,7 @@ const FUNC_TABLE: &[BuiltinFunc] = &[
     BuiltinFunc {
         name: "int",
         num_args: 1,
+        #[cfg(feature = "float")]
         arg_types: [ArgType::Number, ArgType::None],
         func: expr_int_func,
     },
@@ -1496,7 +1499,10 @@ fn illegal_type(bad_type: Type, op: i32) -> DatumResult {
         "non-numeric string"
     };
     #[cfg(not(feature = "float"))]
-    let type_str = "non-numeric string";
+    let type_str = {
+        let _ = bad_type;
+        "non-numeric string"
+    };
 
     molt_err!(
         "can't use {} as operand of \"{}\"",

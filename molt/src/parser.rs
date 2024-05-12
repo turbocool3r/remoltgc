@@ -48,15 +48,20 @@
 //! the parser but by the command that interprets the argument as a variable name.  This module
 //! provides `parse_varname_literal` for this case; it is usually used via `Value::as_var_name`.
 
-use crate::check_args;
 use crate::eval_ptr::EvalPtr;
-use crate::interp::Interp;
-use crate::types::ContextID;
 use crate::types::Exception;
-use crate::types::MoltResult;
 use crate::types::VarName;
 use crate::util::is_varname_char;
 use crate::value::Value;
+
+#[cfg(feature = "internals")]
+use crate::types::MoltResult;
+#[cfg(feature = "internals")]
+use crate::types::ContextID;
+#[cfg(feature = "internals")]
+use crate::interp::Interp;
+#[cfg(feature = "internals")]
+use crate::check_args;
 
 use alloc::string::{String, ToString as _};
 use alloc::vec::Vec;
@@ -560,6 +565,7 @@ impl Tokens {
 ///
 /// A command for parsing an arbitrary script and outputting the parsed form.
 /// This is an undocumented debugging aid.  The output can be greatly improved.
+#[cfg(feature = "internals")]
 pub fn cmd_parse(_interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResult {
     check_args(1, argv, 2, 2, "script")?;
 

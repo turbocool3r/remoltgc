@@ -5,7 +5,7 @@ use crate::tokenizer::Tokenizer;
 use crate::types::*;
 use crate::value::Value;
 
-use alloc::string::{String, ToString as _};
+use alloc::string::String;
 use alloc::vec::Vec;
 
 //--------------------------------------------------------------------------

@@ -457,19 +457,12 @@ impl Exception {
     /// # Panics
     ///
     /// Panics if the exception is not an error exception.
+    #[cfg(feature = "error-stack-trace")]
     pub fn add_error_info(&mut self, line: &str) {
         if let Some(data) = &mut self.0.error_data {
             data.add_info(line);
         } else {
             panic!("add_error_info called for non-Error Exception");
-        }
-    }
-
-    pub fn mark_not_new(&mut self) {
-        if let Some(data) = &mut self.0.error_data {
-            data.mark_not_new();
-        } else {
-            panic!("mark_not_new called for non-Error Exception");
         }
     }
 
@@ -654,6 +647,7 @@ impl Exception {
 
     /// This is used by the interpreter when accumulating stack trace information.
     /// See Interp::eval_script.
+    #[cfg(feature = "error-stack-trace")]
     pub(crate) fn is_new_error(&self) -> bool {
         if let Some(data) = &self.0.error_data {
             data.is_new()
@@ -675,6 +669,7 @@ pub struct ErrorData {
     stack_trace: Vec<String>,
 
     /// Is this a new error?
+    #[cfg(feature = "error-stack-trace")]
     is_new: bool,
 }
 
@@ -683,10 +678,15 @@ impl ErrorData {
     // The error data is marked as "new", meaning that the stack_trace is know to contain
     // a single error message.
     fn new(error_code: Value, error_msg: &str) -> Self {
+        #[cfg(not(feature = "error-stack-trace"))]
+        {
+            let _ = error_msg;
+        }
         Self {
             error_code,
             #[cfg(feature = "error-stack-trace")]
             stack_trace: vec![error_msg.into()],
+            #[cfg(feature = "error-stack-trace")]
             is_new: true,
         }
     }
@@ -695,10 +695,15 @@ impl ErrorData {
     // The error data is marked as not-new, meaning that the stack_trace has
     // been initialized with a partial stack trace, not just the first error message.
     fn rethrow(error_code: Value, error_info: &str) -> Self {
+        #[cfg(not(feature = "error-stack-trace"))]
+        {
+            let _ = error_info;
+        }
         Self {
             error_code,
             #[cfg(feature = "error-stack-trace")]
             stack_trace: vec![error_info.into()],
+            #[cfg(feature = "error-stack-trace")]
             is_new: false,
         }
     }
@@ -709,6 +714,7 @@ impl ErrorData {
     }
 
     /// Whether this has just been created, or the stack trace has been extended.
+    #[cfg(feature = "error-stack-trace")]
     pub(crate) fn is_new(&self) -> bool {
         self.is_new
     }
@@ -726,15 +732,9 @@ impl ErrorData {
     }
 
     /// Adds to the stack trace, which, having been extended, is no longer new.
+    #[cfg(feature = "error-stack-trace")]
     pub(crate) fn add_info(&mut self, info: &str) {
-        #[cfg(feature = "error-stack-trace")]
-        {
-            self.stack_trace.push(info.into());
-        }
-        self.is_new = false;
-    }
-
-    pub(crate) fn mark_not_new(&mut self) {
+        self.stack_trace.push(info.into());
         self.is_new = false;
     }
 }

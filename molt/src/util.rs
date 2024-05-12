@@ -79,6 +79,7 @@ pub fn read_int(ptr: &mut Tokenizer) -> Option<String> {
 ///
 /// * The resulting string has the form of a floating point number but might be out of the
 ///   valid range.
+#[cfg(feature = "float")]
 pub fn read_float(ptr: &mut Tokenizer) -> Option<String> {
     let mut p = ptr.clone();
     let mut result = String::new();

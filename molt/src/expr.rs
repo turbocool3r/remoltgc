@@ -890,7 +890,6 @@ fn expr_lex(interp: &mut Interp, info: &mut ExprInfo) -> DatumResult {
                 info.expr = p;
                 return Ok(Datum::float(Value::get_float(&token)?));
             }
-            unreachable!()
         }
     }
 

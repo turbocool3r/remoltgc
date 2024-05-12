@@ -678,63 +678,59 @@ impl Interp {
     pub fn new() -> Self {
         let mut interp = Interp::empty();
 
-        // TODO: These commands affect the interpreter only, not the external environment.
-        // It might be desirable to subdivide them further, into those that can cause
-        // denial-of-service kinds of problems, e.g., for, while, proc, rename, and those
-        // that can't.
-        interp.add_command("append", commands::cmd_append);
-        interp.add_command("break", commands::cmd_break);
-        interp.add_command("catch", commands::cmd_catch);
-        interp.add_command("continue", commands::cmd_continue);
-        interp.add_command("error", commands::cmd_error);
-        interp.add_command("global", commands::cmd_global);
-        interp.add_command("array", commands::cmd_array);
-        interp.add_command("assert_eq", commands::cmd_assert_eq);
-        #[cfg(feature = "dict")]
-        interp.add_command("dict", commands::cmd_dict);
-        interp.add_command("incr", commands::cmd_incr);
-        interp.add_command("join", commands::cmd_join);
-        interp.add_command("lappend", commands::cmd_lappend);
-        interp.add_command("lindex", commands::cmd_lindex);
-        interp.add_command("list", commands::cmd_list);
-        interp.add_command("llength", commands::cmd_llength);
-        interp.add_command("proc", commands::cmd_proc);
-        interp.add_command("rename", commands::cmd_rename);
-        interp.add_command("return", commands::cmd_return);
-        interp.add_command("set", commands::cmd_set);
-        interp.add_command("throw", commands::cmd_throw);
-        interp.add_command("unset", commands::cmd_unset);
-        interp.add_command("foreach", commands::cmd_foreach);
-        #[cfg(feature = "info")]
-        interp.add_command("info", commands::cmd_info);
-        interp.add_command("string", commands::cmd_string);
-        interp.add_command("expr", commands::cmd_expr);
-        interp.add_command("for", commands::cmd_for);
-        interp.add_command("if", commands::cmd_if);
-        interp.add_command("while", commands::cmd_while);
+        static NEW_COMMANDS: &[(&str, CommandFunc)] = &[
+            ("append", commands::cmd_append),
+            ("break", commands::cmd_break),
+            ("catch", commands::cmd_catch),
+            ("continue", commands::cmd_continue),
+            ("error", commands::cmd_error),
+            ("global", commands::cmd_global),
+            ("array", commands::cmd_array),
+            ("assert_eq", commands::cmd_assert_eq),
+            ("incr", commands::cmd_incr),
+            ("join", commands::cmd_join),
+            ("lappend", commands::cmd_lappend),
+            ("lindex", commands::cmd_lindex),
+            ("list", commands::cmd_list),
+            ("llength", commands::cmd_llength),
+            ("proc", commands::cmd_proc),
+            ("rename", commands::cmd_rename),
+            ("return", commands::cmd_return),
+            ("set", commands::cmd_set),
+            ("throw", commands::cmd_throw),
+            ("unset", commands::cmd_unset),
+            ("foreach", commands::cmd_foreach),
+            ("string", commands::cmd_string),
+            ("expr", commands::cmd_expr),
+            ("for", commands::cmd_for),
+            ("if", commands::cmd_if),
+            ("while", commands::cmd_while),
 
-        #[cfg(feature = "std")]
-        interp.add_command("puts", commands::cmd_puts);
-        #[cfg(feature = "std")]
-        interp.add_command("time", commands::cmd_time);
+            #[cfg(feature = "dict")]
+            ("dict", commands::cmd_dict),
+            #[cfg(feature = "info")]
+            ("info", commands::cmd_info),
 
-        // TODO: Requires file access.  Ultimately, might go in an extension crate if
-        // the necessary operations aren't available in core::.
-        #[cfg(feature = "std")]
-        interp.add_command("source", commands::cmd_source);
+            #[cfg(feature = "std")]
+            ("puts", commands::cmd_puts),
+            #[cfg(feature = "std")]
+            ("time", commands::cmd_time),
+            #[cfg(feature = "std")]
+            ("source", commands::cmd_source),
+            #[cfg(feature = "std")]
+            ("exit", commands::cmd_exit),
 
-        // TODO: Useful for entire programs written in Molt; but not necessarily wanted in
-        // extension scripts.
-        #[cfg(feature = "std")]
-        interp.add_command("exit", commands::cmd_exit);
+            #[cfg(feature = "internals")]
+            ("parse", parser::cmd_parse),
+            #[cfg(all(feature = "std", feature = "internals"))]
+            ("pdump", commands::cmd_pdump),
+            #[cfg(all(feature = "std", feature = "internals"))]
+            ("pclear", commands::cmd_pclear),
+        ];
 
-        // TODO: Developer Tools
-        #[cfg(feature = "internals")]
-        interp.add_command("parse", parser::cmd_parse);
-        #[cfg(all(feature = "std", feature = "internals"))]
-        interp.add_command("pdump", commands::cmd_pdump);
-        #[cfg(all(feature = "std", feature = "internals"))]
-        interp.add_command("pclear", commands::cmd_pclear);
+        for &(name, func) in NEW_COMMANDS {
+            interp.add_command(name, func);
+        }
 
         // Populate the environment variable.
         // TODO: Really should be a "linked" variable, where sets to it are tracked and

@@ -621,10 +621,12 @@ pub fn cmd_incr(interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltOptRes
 }
 
 /// # info *subcommand* ?*arg*...?
+#[cfg(feature = "info")]
 pub fn cmd_info(interp: &mut Interp, context_id: ContextID, argv: &[Value]) -> MoltOptResult {
     interp.call_subcommand(context_id, argv, 1, &INFO_SUBCOMMANDS)
 }
 
+#[cfg(feature = "info")]
 const INFO_SUBCOMMANDS: [Subcommand; 11] = [
     Subcommand("args", cmd_info_args),
     Subcommand("body", cmd_info_body),
@@ -640,29 +642,34 @@ const INFO_SUBCOMMANDS: [Subcommand; 11] = [
 ];
 
 /// # info args *procname*
+#[cfg(feature = "info")]
 pub fn cmd_info_args(interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltOptResult {
     check_args(2, argv, 3, 3, "procname")?;
     interp.proc_args(argv[2].as_str()).map(Some)
 }
 
 /// # info body *procname*
+#[cfg(feature = "info")]
 pub fn cmd_info_body(interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltOptResult {
     check_args(2, argv, 3, 3, "procname")?;
     interp.proc_body(argv[2].as_str()).map(Some)
 }
 
 /// # info cmdtype *command*
+#[cfg(feature = "info")]
 pub fn cmd_info_cmdtype(interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltOptResult {
     check_args(2, argv, 3, 3, "command")?;
     interp.command_type(argv[2].as_str()).map(Some)
 }
 
 /// # info commands ?*pattern*?
+#[cfg(feature = "info")]
 pub fn cmd_info_commands(interp: &mut Interp, _: ContextID, _argv: &[Value]) -> MoltOptResult {
     molt_opt_ok!(Value::from(interp.command_names()))
 }
 
 /// # info default *procname* *arg* *varname*
+#[cfg(feature = "info")]
 pub fn cmd_info_default(interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltOptResult {
     check_args(2, argv, 5, 5, "procname arg varname")?;
 
@@ -676,12 +683,14 @@ pub fn cmd_info_default(interp: &mut Interp, _: ContextID, argv: &[Value]) -> Mo
 }
 
 /// # info exists *varname*
+#[cfg(feature = "info")]
 pub fn cmd_info_exists(interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltOptResult {
     check_args(2, argv, 3, 3, "varname")?;
     Ok(Some(interp.var_exists(&argv[2]).into()))
 }
 
 /// # info complete *command*
+#[cfg(feature = "info")]
 pub fn cmd_info_complete(interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltOptResult {
     check_args(2, argv, 3, 3, "command")?;
 
@@ -694,23 +703,27 @@ pub fn cmd_info_complete(interp: &mut Interp, _: ContextID, argv: &[Value]) -> M
 
 /// # info globals
 /// TODO: Add glob matching as a feature, and provide optional pattern argument.
+#[cfg(feature = "info")]
 pub fn cmd_info_globals(interp: &mut Interp, _: ContextID, _argv: &[Value]) -> MoltOptResult {
     molt_opt_ok!(Value::from(interp.vars_in_global_scope()))
 }
 
 /// # info locals
 /// TODO: Add glob matching as a feature, and provide optional pattern argument.
+#[cfg(feature = "info")]
 pub fn cmd_info_locals(interp: &mut Interp, _: ContextID, _argv: &[Value]) -> MoltOptResult {
     molt_opt_ok!(Value::from(interp.vars_in_local_scope()))
 }
 
 /// # info procs ?*pattern*?
+#[cfg(feature = "info")]
 pub fn cmd_info_procs(interp: &mut Interp, _: ContextID, _argv: &[Value]) -> MoltOptResult {
     molt_opt_ok!(Value::from(interp.proc_names()))
 }
 
 /// # info vars
 /// TODO: Add glob matching as a feature, and provide optional pattern argument.
+#[cfg(feature = "info")]
 pub fn cmd_info_vars(interp: &mut Interp, _: ContextID, _argv: &[Value]) -> MoltOptResult {
     molt_opt_ok!(Value::from(interp.vars_in_scope()))
 }

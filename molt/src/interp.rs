@@ -705,6 +705,7 @@ impl Interp {
         interp.add_command("throw", commands::cmd_throw);
         interp.add_command("unset", commands::cmd_unset);
         interp.add_command("foreach", commands::cmd_foreach);
+        #[cfg(feature = "info")]
         interp.add_command("info", commands::cmd_info);
         interp.add_command("string", commands::cmd_string);
         interp.add_command("expr", commands::cmd_expr);

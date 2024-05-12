@@ -41,7 +41,10 @@ use alloc::{vec, vec::Vec};
 /// The primary reason for defining this as a type alias is future-proofing: at
 /// some point we may wish to replace `MoltInt` with a more powerful type that
 /// supports BigNums, or switch to `i128`.
+#[cfg(feature = "i64")]
 pub type MoltInt = i64;
+#[cfg(not(feature = "i64"))]
+pub type MoltInt = i32;
 
 /// The standard floating point type for Molt code.
 ///

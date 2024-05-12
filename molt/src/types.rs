@@ -25,6 +25,7 @@
 
 use crate::interp::Interp;
 pub use crate::value::Value;
+use alloc::boxed::Box;
 #[cfg(feature = "dict")]
 use indexmap::IndexMap;
 use core::fmt;
@@ -245,9 +246,11 @@ impl ResultCode {
 ///
 /// [`ResultCode`]: enum.ResultCode.html
 /// [`MoltResult`]: type.MoltResult.html
+#[derive(Debug, Clone, Eq, PartialEq)]
+pub struct Exception(Box<ExceptionInner>);
 
 #[derive(Debug, Clone, Eq, PartialEq)]
-pub struct Exception {
+struct ExceptionInner {
     /// The kind of exception
     code: ResultCode,
 
@@ -286,7 +289,7 @@ impl Exception {
     /// }
     /// ```
     pub fn is_error(&self) -> bool {
-        self.code == ResultCode::Error
+        self.0.code == ResultCode::Error
     }
 
     /// Returns the exception's error code, only if `is_error()`.
@@ -338,7 +341,7 @@ impl Exception {
     ///
     /// [`ErrorData`]: struct.ErrorData.html
     pub fn error_data(&self) -> Option<&ErrorData> {
-        self.error_data.as_ref()
+        self.0.error_data.as_ref()
     }
 
     /// Gets the exception's result code.
@@ -372,7 +375,7 @@ impl Exception {
     /// }
     /// ```
     pub fn code(&self) -> ResultCode {
-        self.code
+        self.0.code
     }
 
     /// Gets the exception's value, i.e., the explicit return value or the error message.  In
@@ -400,14 +403,14 @@ impl Exception {
     /// }
     /// ```
     pub fn value(&self) -> Value {
-        self.value.clone()
+        self.0.value.clone()
     }
 
     /// Gets the exception's level.  The "level" code is set by the `return` command's
     /// `-level` option.  See The Molt Book's `return` page for the semantics.  Client code
     /// should rarely if ever need to refer to this.
     pub fn level(&self) -> usize {
-        self.level
+        self.0.level
     }
 
     /// Gets the exception's "next" code (when `code == ResultCode::Return` only).  The
@@ -415,7 +418,7 @@ impl Exception {
     /// `return` page for the semantics.  Client code should rarely if ever need to refer
     /// to this.
     pub fn next_code(&self) -> ResultCode {
-        self.next_code
+        self.0.next_code
     }
 
     /// Adds a line to the exception's error info, i.e., to its human readable stack trace.
@@ -450,7 +453,7 @@ impl Exception {
     ///
     /// Panics if the exception is not an error exception.
     pub fn add_error_info(&mut self, line: &str) {
-        if let Some(data) = &mut self.error_data {
+        if let Some(data) = &mut self.0.error_data {
             data.add_info(line);
         } else {
             panic!("add_error_info called for non-Error Exception");
@@ -474,13 +477,13 @@ impl Exception {
     pub fn molt_err(msg: Value) -> Self {
         let data = ErrorData::new(Value::from("NONE"), msg.as_str());
 
-        Self {
+        Self(Box::new(ExceptionInner {
             code: ResultCode::Error,
             value: msg,
             level: 0,
             next_code: ResultCode::Error,
             error_data: Some(data),
-        }
+        }))
     }
 
     /// Creates an `Error` exception with the given error code and message.  An
@@ -505,13 +508,13 @@ impl Exception {
     pub fn molt_err2(error_code: Value, msg: Value) -> Self {
         let data = ErrorData::new(error_code, msg.as_str());
 
-        Self {
+        Self(Box::new(ExceptionInner {
             code: ResultCode::Error,
             value: msg,
             level: 0,
             next_code: ResultCode::Error,
             error_data: Some(data),
-        }
+        }))
     }
 
     /// Creates a `Return` exception, with the given return value.  Return `Value::empty()`
@@ -522,13 +525,13 @@ impl Exception {
     /// `catch` commands, you'll understand what this does and when you would want
     /// to use it.  If you don't, you almost certainly don't need it.
     pub fn molt_return(value: Value) -> Self {
-        Self {
+        Self(Box::new(ExceptionInner {
             code: ResultCode::Return,
             value,
             level: 1,
             next_code: ResultCode::Okay,
             error_data: None,
-        }
+        }))
     }
 
     /// Creates an extended `Return` exception with the given return value, `-level`,
@@ -544,7 +547,7 @@ impl Exception {
     pub fn molt_return_ext(value: Value, level: usize, next_code: ResultCode) -> Self {
         assert!(level > 0 || next_code != ResultCode::Okay);
 
-        Self {
+        Self(Box::new(ExceptionInner {
             code: if level > 0 {
                 ResultCode::Return
             } else {
@@ -554,7 +557,7 @@ impl Exception {
             level,
             next_code,
             error_data: None,
-        }
+        }))
     }
 
     /// Creates an exception that will produce an `Error` exception with the given data,
@@ -576,7 +579,7 @@ impl Exception {
 
         let data = ErrorData::rethrow(error_code, error_info.as_str());
 
-        Self {
+        Self(Box::new(ExceptionInner {
             code: if level == 0 {
                 ResultCode::Error
             } else {
@@ -586,7 +589,7 @@ impl Exception {
             level,
             next_code: ResultCode::Error,
             error_data: Some(data),
-        }
+        }))
     }
 
     /// Creates a `Break` exception.
@@ -596,13 +599,13 @@ impl Exception {
     /// `catch` commands, you'll understand what this does and when you would want
     /// to use it.  If you don't, you almost certainly don't need it.
     pub fn molt_break() -> Self {
-        Self {
+        Self(Box::new(ExceptionInner {
             code: ResultCode::Break,
             value: Value::empty(),
             level: 0,
             next_code: ResultCode::Break,
             error_data: None,
-        }
+        }))
     }
 
     /// Creates a `Continue` exception.
@@ -612,13 +615,13 @@ impl Exception {
     /// `catch` commands, you'll understand what this does and when you would want
     /// to use it.  If you don't, you almost certainly don't need it.
     pub fn molt_continue() -> Self {
-        Self {
+        Self(Box::new(ExceptionInner {
             code: ResultCode::Continue,
             value: Value::empty(),
             level: 0,
             next_code: ResultCode::Continue,
             error_data: None,
-        }
+        }))
     }
 
     /// Only when the ResultCode is Return:
@@ -629,17 +632,17 @@ impl Exception {
     /// This is used in `Interp::eval_script` to implement the `return` command's
     /// `-code` and  `-level` protocol.
     pub(crate) fn decrement_level(&mut self) {
-        assert!(self.code == ResultCode::Return && self.level > 0);
-        self.level -= 1;
-        if self.level == 0 {
-            self.code = self.next_code;
+        assert!(self.0.code == ResultCode::Return && self.0.level > 0);
+        self.0.level -= 1;
+        if self.0.level == 0 {
+            self.0.code = self.0.next_code;
         }
     }
 
     /// This is used by the interpreter when accumulating stack trace information.
     /// See Interp::eval_script.
     pub(crate) fn is_new_error(&self) -> bool {
-        if let Some(data) = &self.error_data {
+        if let Some(data) = &self.0.error_data {
             data.is_new()
         } else {
             false

@@ -6,8 +6,8 @@
 //! * Skip just past the end of the token using `next`, `skip`, etc.
 //! * Use `token` to retrieve a slice from the mark to the index.
 
-use std::iter::Peekable;
-use std::str::Chars;
+use core::iter::Peekable;
+use core::str::Chars;
 
 /// The Tokenizer type.  See the module-level documentation.
 #[derive(Clone, Debug)]
@@ -216,7 +216,7 @@ impl<'a> Tokenizer<'a> {
                     let hex = &self.input[mark..self.index];
 
                     let val = u32::from_str_radix(hex, 16).unwrap();
-                    if let Some(ch) = std::char::from_u32(val) {
+                    if let Some(ch) = char::from_u32(val) {
                         ch
                     } else {
                         self.reset_to(mark);

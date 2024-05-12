@@ -15,6 +15,8 @@ use crate::types::MoltList;
 use crate::types::MoltResult;
 use crate::value::Value;
 use indexmap::IndexMap;
+use alloc::vec::Vec;
+use alloc::string::String;
 
 /// Create an empty dict.
 pub fn dict_new() -> MoltDict {

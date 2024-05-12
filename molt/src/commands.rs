@@ -10,8 +10,9 @@ use crate::interp::Interp;
 use crate::types::*;
 use crate::util;
 use crate::*;
-use std::fs;
-use std::time::Instant;
+
+use alloc::string::String;
+use alloc::vec::Vec;
 
 /// # append *varName* ?*value* ...?
 ///
@@ -347,22 +348,22 @@ pub fn cmd_error(_interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResu
     molt_err!(argv[1].clone())
 }
 
-/// # exit ?*returnCode*?
-///
-/// Terminates the application by calling `std::process::exit()`.
-/// If given, _returnCode_ must be an integer return code; if absent, it
-/// defaults to 0.
-pub fn cmd_exit(_interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResult {
-    check_args(1, argv, 1, 2, "?returnCode?")?;
-
-    let return_code: MoltInt = if argv.len() == 1 {
-        0
-    } else {
-        argv[1].as_int()?
-    };
-
-    std::process::exit(return_code as i32)
-}
+///// # exit ?*returnCode*?
+/////
+///// Terminates the application by calling `std::process::exit()`.
+///// If given, _returnCode_ must be an integer return code; if absent, it
+///// defaults to 0.
+//pub fn cmd_exit(_interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResult {
+//    check_args(1, argv, 1, 2, "?returnCode?")?;
+//
+//    let return_code: MoltInt = if argv.len() == 1 {
+//        0
+//    } else {
+//        argv[1].as_int()?
+//    };
+//
+//    std::process::exit(return_code as i32)
+//}
 
 /// # expr expr
 ///
@@ -787,27 +788,27 @@ pub fn cmd_llength(_interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltRe
     molt_ok!(argv[1].as_list()?.len() as MoltInt)
 }
 
-/// # pdump
-///
-/// Dumps profile data.  Developer use only.
-pub fn cmd_pdump(interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResult {
-    check_args(1, argv, 1, 1, "")?;
+///// # pdump
+/////
+///// Dumps profile data.  Developer use only.
+//pub fn cmd_pdump(interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResult {
+//    check_args(1, argv, 1, 1, "")?;
+//
+////    interp.profile_dump();
+//
+//    molt_ok!()
+//}
 
-    interp.profile_dump();
-
-    molt_ok!()
-}
-
-/// # pclear
-///
-/// Clears profile data.  Developer use only.
-pub fn cmd_pclear(interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResult {
-    check_args(1, argv, 1, 1, "")?;
-
-    interp.profile_clear();
-
-    molt_ok!()
-}
+///// # pclear
+/////
+///// Clears profile data.  Developer use only.
+//pub fn cmd_pclear(interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResult {
+//    check_args(1, argv, 1, 1, "")?;
+//
+// //   interp.profile_clear();
+//
+//    molt_ok!()
+//}
 
 /// # proc *name* *args* *body*
 ///
@@ -836,20 +837,20 @@ pub fn cmd_proc(interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResult
     molt_ok!()
 }
 
-/// # puts *string*
-///
-/// Outputs the string to stdout.
-///
-/// ## TCL Liens
-///
-/// * Does not support `-nonewline`
-/// * Does not support `channelId`
-pub fn cmd_puts(_interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResult {
-    check_args(1, argv, 2, 2, "string")?;
-
-    println!("{}", argv[1]);
-    molt_ok!()
-}
+///// # puts *string*
+/////
+///// Outputs the string to stdout.
+/////
+///// ## TCL Liens
+/////
+///// * Does not support `-nonewline`
+///// * Does not support `channelId`
+//pub fn cmd_puts(_interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResult {
+//    check_args(1, argv, 2, 2, "string")?;
+//
+//    println!("{}", argv[1]);
+//    molt_ok!()
+//}
 
 /// # rename *oldName* *newName*
 ///
@@ -981,19 +982,19 @@ pub fn cmd_set(interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResult 
     }
 }
 
-/// # source *filename*
-///
-/// Sources the file, returning the result.
-pub fn cmd_source(interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResult {
-    check_args(1, argv, 2, 2, "filename")?;
-
-    let filename = argv[1].as_str();
-
-    match fs::read_to_string(filename) {
-        Ok(script) => interp.eval(&script),
-        Err(e) => molt_err!("couldn't read file \"{}\": {}", filename, e),
-    }
-}
+///// # source *filename*
+/////
+///// Sources the file, returning the result.
+//pub fn cmd_source(interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResult {
+//    check_args(1, argv, 2, 2, "filename")?;
+//
+//    let filename = argv[1].as_str();
+//
+//    match fs::read_to_string(filename) {
+//        Ok(script) => interp.eval(&script),
+//        Err(e) => molt_err!("couldn't read file \"{}\": {}", filename, e),
+//    }
+//}
 
 /// # string *subcommand* ?*arg*...?
 pub fn cmd_string(interp: &mut Interp, context_id: ContextID, argv: &[Value]) -> MoltResult {
@@ -1350,37 +1351,37 @@ pub fn cmd_throw(_interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResu
     Err(Exception::molt_err2(argv[1].clone(), argv[2].clone()))
 }
 
-/// # time *command* ?*count*?
-///
-/// Executes the command the given number of times, and returns the average
-/// number of microseconds per iteration.  The *count* defaults to 1.
-pub fn cmd_time(interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResult {
-    check_args(1, argv, 2, 3, "command ?count?")?;
-
-    let command = &argv[1];
-
-    let count = if argv.len() == 3 {
-        argv[2].as_int()?
-    } else {
-        1
-    };
-
-    let start = Instant::now();
-
-    for _i in 0..count {
-        interp.eval_value(command)?;
-    }
-
-    let span = start.elapsed();
-
-    let avg = if count > 0 {
-        span.as_nanos() / (count as u128)
-    } else {
-        0
-    } as MoltInt;
-
-    molt_ok!("{} nanoseconds per iteration", avg)
-}
+///// # time *command* ?*count*?
+/////
+///// Executes the command the given number of times, and returns the average
+///// number of microseconds per iteration.  The *count* defaults to 1.
+//pub fn cmd_time(interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResult {
+//    check_args(1, argv, 2, 3, "command ?count?")?;
+//
+//    let command = &argv[1];
+//
+//    let count = if argv.len() == 3 {
+//        argv[2].as_int()?
+//    } else {
+//        1
+//    };
+//
+//    let start = Instant::now();
+//
+//    for _i in 0..count {
+//        interp.eval_value(command)?;
+//    }
+//
+//    let span = start.elapsed();
+//
+//    let avg = if count > 0 {
+//        span.as_nanos() / (count as u128)
+//    } else {
+//        0
+//    } as MoltInt;
+//
+//    molt_ok!("{} nanoseconds per iteration", avg)
+//}
 
 /// # unset ?-nocomplain? *varName*
 ///

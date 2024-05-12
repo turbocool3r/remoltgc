@@ -10,6 +10,9 @@ use crate::parser::Word;
 use crate::tokenizer::Tokenizer;
 use crate::*;
 
+use alloc::string::String;
+use alloc::format;
+
 //------------------------------------------------------------------------------------------------
 // Datum Representation
 

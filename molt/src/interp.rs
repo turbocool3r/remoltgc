@@ -453,10 +453,14 @@ use crate::parser::Word;
 use crate::scope::ScopeStack;
 use crate::types::*;
 use crate::value::Value;
-use std::any::Any;
-use std::collections::HashMap;
-use std::rc::Rc;
-use std::time::Instant;
+use core::any::Any;
+use alloc::collections::BTreeMap;
+use alloc::rc::Rc;
+use alloc::borrow::ToOwned as _;
+use alloc::string::String;
+use alloc::vec::Vec;
+use alloc::boxed::Box;
+use alloc::format;
 
 // Constants
 const OPT_CODE: &str = "-code";
@@ -494,7 +498,7 @@ const ZERO: &str = "0";
 #[derive(Default)]
 pub struct Interp {
     // Command Table
-    commands: HashMap<String, Rc<Command>>,
+    commands: BTreeMap<String, Rc<Command>>,
 
     // Variable Table
     scopes: ScopeStack,
@@ -503,7 +507,7 @@ pub struct Interp {
     last_context_id: u64,
 
     // Context Map
-    context_map: HashMap<ContextID, ContextBox>,
+    context_map: BTreeMap<ContextID, ContextBox>,
 
     // Defines the recursion limit for Interp::eval().
     recursion_limit: usize,
@@ -512,7 +516,7 @@ pub struct Interp {
     num_levels: usize,
 
     // Profile Map
-    profile_map: HashMap<String, ProfileRecord>,
+    //profile_map: BTreeMap<String, ProfileRecord>,
 }
 
 /// A command defined in the interpreter.
@@ -605,16 +609,16 @@ impl ContextBox {
     }
 }
 
-struct ProfileRecord {
-    count: u128,
-    nanos: u128,
-}
-
-impl ProfileRecord {
-    fn new() -> Self {
-        Self { count: 0, nanos: 0 }
-    }
-}
+//struct ProfileRecord {
+//    count: u128,
+//    nanos: u128,
+//}
+//
+//impl ProfileRecord {
+//    fn new() -> Self {
+//        Self { count: 0, nanos: 0 }
+//    }
+//}
 
 // NOTE: The order of methods in the generated RustDoc depends on the order in this block.
 // Consequently, methods are ordered pedagogically.
@@ -637,12 +641,12 @@ impl Interp {
     pub fn empty() -> Self {
         let mut interp = Self {
             recursion_limit: 1000,
-            commands: HashMap::new(),
+            commands: BTreeMap::new(),
             last_context_id: 0,
-            context_map: HashMap::new(),
+            context_map: BTreeMap::new(),
             scopes: ScopeStack::new(),
             num_levels: 0,
-            profile_map: HashMap::new(),
+            //profile_map: BTreeMap::new(),
         };
 
         interp.set_scalar("errorInfo", Value::empty()).unwrap();
@@ -697,28 +701,28 @@ impl Interp {
         interp.add_command("list", commands::cmd_list);
         interp.add_command("llength", commands::cmd_llength);
         interp.add_command("proc", commands::cmd_proc);
-        interp.add_command("puts", commands::cmd_puts);
+        //interp.add_command("puts", commands::cmd_puts);
         interp.add_command("rename", commands::cmd_rename);
         interp.add_command("return", commands::cmd_return);
         interp.add_command("set", commands::cmd_set);
         interp.add_command("string", commands::cmd_string);
         interp.add_command("throw", commands::cmd_throw);
-        interp.add_command("time", commands::cmd_time);
+        //interp.add_command("time", commands::cmd_time);
         interp.add_command("unset", commands::cmd_unset);
         interp.add_command("while", commands::cmd_while);
 
         // TODO: Requires file access.  Ultimately, might go in an extension crate if
         // the necessary operations aren't available in core::.
-        interp.add_command("source", commands::cmd_source);
+        //interp.add_command("source", commands::cmd_source);
 
         // TODO: Useful for entire programs written in Molt; but not necessarily wanted in
         // extension scripts.
-        interp.add_command("exit", commands::cmd_exit);
+        //interp.add_command("exit", commands::cmd_exit);
 
         // TODO: Developer Tools
         interp.add_command("parse", parser::cmd_parse);
-        interp.add_command("pdump", commands::cmd_pdump);
-        interp.add_command("pclear", commands::cmd_pclear);
+        //interp.add_command("pdump", commands::cmd_pdump);
+        //interp.add_command("pclear", commands::cmd_pclear);
 
         // Populate the environment variable.
         // TODO: Really should be a "linked" variable, where sets to it are tracked and
@@ -734,10 +738,10 @@ impl Interp {
     ///
     /// Changes to the variable are not mirrored back into the process's environment.
     fn populate_env(&mut self) {
-        for (key, value) in std::env::vars() {
-            // Drop the result, as there's no good reason for this to ever throw an error.
-            let _ = self.set_element("env", &key, value.into());
-        }
+        //for (key, value) in std::env::vars() {
+        //    // Drop the result, as there's no good reason for this to ever throw an error.
+        //    let _ = self.set_element("env", &key, value.into());
+        //}
     }
 
     //--------------------------------------------------------------------------------------------
@@ -2134,34 +2138,34 @@ impl Interp {
     //--------------------------------------------------------------------------------------------
     // Profiling
 
-    /// Unstable; use at own risk.
-    pub fn profile_save(&mut self, name: &str, start: std::time::Instant) {
-        let dur = Instant::now().duration_since(start).as_nanos();
-        let rec = self
-            .profile_map
-            .entry(name.into())
-            .or_insert_with(ProfileRecord::new);
+    // Unstable; use at own risk.
+    //pub fn profile_save(&mut self, _name: &str, _start: std::time::Instant) {
+        //let dur = Instant::now().duration_since(start).as_nanos();
+        //let rec = self
+        //    .profile_map
+        //    .entry(name.into())
+        //    .or_insert_with(ProfileRecord::new);
 
-        rec.count += 1;
-        rec.nanos += dur;
-    }
+        //rec.count += 1;
+        //rec.nanos += dur;
+   //// }
 
-    /// Unstable; use at own risk.
-    pub fn profile_clear(&mut self) {
-        self.profile_map.clear();
-    }
+    // Unstable; use at own risk.
+    //pub fn profile_clear(&mut self) {
+    //    self.profile_map.clear();
+    //}
 
-    /// Unstable; use at own risk.
-    pub fn profile_dump(&self) {
-        if self.profile_map.is_empty() {
-            println!("no profile data");
-        } else {
-            for (name, rec) in &self.profile_map {
-                let avg = rec.nanos / rec.count;
-                println!("{} nanos {}, count={}", avg, name, rec.count);
-            }
-        }
-    }
+    // Unstable; use at own risk.
+    //pub fn profile_dump(&self) {
+    //    if self.profile_map.is_empty() {
+    //        println!("no profile data");
+    //    } else {
+    //        for (name, rec) in &self.profile_map {
+    //            let avg = rec.nanos / rec.count;
+    //            println!("{} nanos {}, count={}", avg, name, rec.count);
+    //        }
+    //    }
+    //}
 }
 
 /// How a procedure is defined: as an argument list and a body script.

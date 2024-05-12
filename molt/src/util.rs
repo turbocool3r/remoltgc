@@ -4,7 +4,8 @@
 
 use crate::tokenizer::Tokenizer;
 use crate::types::*;
-use std::cmp::Ordering;
+use core::cmp::Ordering;
+use alloc::string::String;
 
 pub fn is_varname_char(ch: char) -> bool {
     ch.is_alphanumeric() || ch == '_'
@@ -172,7 +173,7 @@ pub(crate) fn compare_len(str1: &str, str2: &str, length: Option<MoltInt>) -> Re
 
 // From carlomilanesi, rust forums
 // https://users.rust-lang.org/t/how-to-get-a-substring-of-a-string/1351/11
-use std::ops::{Bound, RangeBounds};
+use core::ops::{Bound, RangeBounds};
 
 pub(crate) trait StringUtils {
     fn substring(&self, start: usize, len: usize) -> &str;

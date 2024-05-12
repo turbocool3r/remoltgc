@@ -58,6 +58,10 @@ use crate::types::VarName;
 use crate::util::is_varname_char;
 use crate::value::Value;
 
+use alloc::string::{String, ToString as _};
+use alloc::vec::Vec;
+use alloc::boxed::Box;
+
 /// A compiled script, which can be executed in the context of an interpreter.
 #[derive(Debug, PartialEq)]
 pub(crate) struct Script {
@@ -506,7 +510,7 @@ impl Tokens {
     /// accumulated, it is turned into a `Word` and pushed before the input word.
     fn push(&mut self, word: Word) {
         if self.got_string {
-            let string = std::mem::take(&mut self.string);
+            let string = core::mem::take(&mut self.string);
             self.list.push(Word::String(string));
             self.got_string = false;
         }
@@ -537,7 +541,7 @@ impl Tokens {
             if self.list.is_empty() {
                 return Word::Value(Value::from(self.string));
             } else {
-                let string = std::mem::take(&mut self.string);
+                let string = core::mem::take(&mut self.string);
                 self.list.push(Word::String(string));
             }
         }
@@ -561,7 +565,7 @@ pub fn cmd_parse(_interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResu
 
     let script = &argv[1];
 
-    molt_ok!(format!("{:?}", parse(script.as_str())?))
+    molt_ok!(alloc::format!("{:?}", parse(script.as_str())?))
 }
 
 #[cfg(test)]

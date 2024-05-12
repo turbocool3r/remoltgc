@@ -15,8 +15,10 @@
 use crate::types::Exception;
 use crate::types::MoltList;
 use crate::value::Value;
-use std::collections::HashMap;
-use std::fmt::Debug;
+use alloc::string::String;
+use alloc::collections::BTreeMap;
+use alloc::vec::Vec;
+use core::fmt::Debug;
 
 /// A variable in a `Scope`.  If the variable is defined in the given `Scope`, it is a
 /// `Scalar` or an `Array`; if it is an alias to a variable in a higher scope (e.g., a global)
@@ -28,7 +30,7 @@ enum Var {
     Scalar(Value),
 
     /// An array variable, with its hash table from names to values.
-    Array(HashMap<String, Value>),
+    Array(BTreeMap<String, Value>),
 
     /// An alias to a variable at a higher stack level, with the referenced stack level.
     /// Note that aliases can chain.
@@ -46,7 +48,7 @@ impl Var {
 }
 
 impl Debug for Var {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         match self {
             Var::Scalar(value) => write!(f, "Var::Scalar({})", value.as_str()),
             Var::Array(_) => write!(f, "Var::Array(TODO)"),
@@ -62,14 +64,14 @@ impl Debug for Var {
 #[derive(Default, Debug)]
 struct Scope {
     /// Vars in this scope by name.
-    map: HashMap<String, Var>,
+    map: BTreeMap<String, Var>,
 }
 
 impl Scope {
     /// Create a new empty scope.
     pub fn new() -> Self {
         Scope {
-            map: HashMap::new(),
+            map: BTreeMap::new(),
         }
     }
 }
@@ -181,7 +183,7 @@ impl ScopeStack {
             Some(var) => {
                 assert_eq!(*var, Var::New);
                 // Create new variable on the top of the stack.
-                let mut map = HashMap::new();
+                let mut map = BTreeMap::new();
                 map.insert(index.into(), val);
                 *var = Var::Array(map);
                 Ok(())
@@ -365,7 +367,7 @@ impl ScopeStack {
             Some(var) => {
                 assert_eq!(*var, Var::New);
                 // Create new variable on the top of the stack.
-                let mut map = HashMap::new();
+                let mut map = BTreeMap::new();
                 insert_kvlist(&mut map, kvlist);
                 *var = Var::Array(map);
                 Ok(())
@@ -428,7 +430,7 @@ impl ScopeStack {
 }
 
 // Insert the flat key-value list into the map.
-fn insert_kvlist(map: &mut HashMap<String, Value>, list: &[Value]) {
+fn insert_kvlist(map: &mut BTreeMap<String, Value>, list: &[Value]) {
     for kv in list.chunks(2) {
         map.insert(kv[0].as_str().into(), kv[1].clone());
     }

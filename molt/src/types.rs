@@ -26,8 +26,10 @@
 use crate::interp::Interp;
 pub use crate::value::Value;
 use indexmap::IndexMap;
-use std::fmt;
-use std::str::FromStr;
+use core::fmt;
+use core::str::FromStr;
+use alloc::string::String;
+use alloc::{vec, vec::Vec};
 
 // Molt Numeric Types
 
@@ -707,7 +709,7 @@ impl ErrorData {
 /// [The Molt Book]: https://wduquette.github.io/molt/
 /// [`interp`]: ../interp/index.html
 
-#[derive(Eq, PartialEq, Debug, Hash, Copy, Clone)]
+#[derive(Eq, PartialEq, Debug, Hash, Copy, Clone, Ord, PartialOrd)]
 pub struct ContextID(pub(crate) u64);
 
 /// A function used to implement a binary Molt command. For more information see the

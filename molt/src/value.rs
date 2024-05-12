@@ -178,16 +178,19 @@ use crate::types::MoltFloat;
 use crate::types::MoltInt;
 use crate::types::MoltList;
 use crate::types::VarName;
-use std::any::Any;
-use std::any::TypeId;
-use std::cell::RefCell;
-use std::cell::UnsafeCell;
-use std::fmt::Debug;
-use std::fmt::Display;
-use std::hash::Hash;
-use std::hash::Hasher;
-use std::rc::Rc;
-use std::str::FromStr;
+use core::any::Any;
+use core::any::TypeId;
+use core::cell::RefCell;
+use core::cell::UnsafeCell;
+use core::fmt::Debug;
+use core::fmt::Display;
+use core::hash::Hash;
+use core::hash::Hasher;
+use alloc::rc::Rc;
+use alloc::boxed::Box;
+use alloc::string::{String, ToString as _};
+use alloc::borrow::ToOwned as _;
+use core::str::FromStr;
 
 //-----------------------------------------------------------------------------
 // Public Data Types
@@ -214,12 +217,12 @@ struct InnerValue {
     data_rep: RefCell<DataRep>,
 }
 
-impl std::fmt::Debug for Value {
+impl Debug for Value {
     /// The Debug formatter for values.
     ///
     /// TODO: This should indicate something about the data rep as well, especially for
     /// values in which the string rep isn't yet set.
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         write!(f, "Value[{}]", self.as_str())
     }
 }
@@ -252,7 +255,7 @@ impl Value {
 
 impl Display for Value {
     /// The `Display` formatter for `Value`.  Outputs the value's string rep.
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+    fn fmt(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
         write!(f, "{}", self.as_str())
     }
 }
@@ -795,10 +798,10 @@ impl Value {
     ///
     /// TODO: This needs a lot of work, so that floating point outputs will parse back into
     /// the same floating point numbers.
-    fn fmt_float(f: &mut std::fmt::Formatter, flt: MoltFloat) -> std::fmt::Result {
-        if flt == std::f64::INFINITY {
+    fn fmt_float(f: &mut core::fmt::Formatter, flt: MoltFloat) -> core::fmt::Result {
+        if flt == core::f64::INFINITY {
             write!(f, "Inf")
-        } else if flt == std::f64::NEG_INFINITY {
+        } else if flt == core::f64::NEG_INFINITY {
             write!(f, "-Inf")
         } else if flt.is_nan() {
             write!(f, "NaN")
@@ -1162,7 +1165,7 @@ enum DataRep {
 }
 
 impl Display for DataRep {
-    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+    fn fmt(&self, f: &mut core::fmt::Formatter) -> core::fmt::Result {
         match self {
             DataRep::Bool(flag) => write!(f, "{}", if *flag { 1 } else { 0 }),
             DataRep::Dict(dict) => write!(f, "{}", dict_to_string(dict)),

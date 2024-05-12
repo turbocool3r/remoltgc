@@ -205,6 +205,12 @@ pub struct Value {
     inner: Rc<InnerValue>,
 }
 
+impl Default for Value {
+    fn default() -> Self {
+        Self::empty()
+    }
+}
+
 impl Hash for Value {
     // A Value is hashed according to its string rep; all Values with the same string rep
     // are identical.

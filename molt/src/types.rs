@@ -31,7 +31,9 @@ use indexmap::IndexMap;
 use core::fmt;
 use core::str::FromStr;
 use alloc::string::String;
-use alloc::{vec, vec::Vec};
+use alloc::vec::Vec;
+#[cfg(feature = "error-stack-trace")]
+use alloc::vec;
 
 // Molt Numeric Types
 
@@ -463,6 +465,14 @@ impl Exception {
         }
     }
 
+    pub fn mark_not_new(&mut self) {
+        if let Some(data) = &mut self.0.error_data {
+            data.mark_not_new();
+        } else {
+            panic!("mark_not_new called for non-Error Exception");
+        }
+    }
+
     /// Creates an `Error` exception with the given error message.  This is primarily
     /// intended for use by the [`molt_err!`] macro, but it can also be used directly.
     ///
@@ -661,6 +671,7 @@ pub struct ErrorData {
     error_code: Value,
 
     /// The TCL stack trace.
+    #[cfg(feature = "error-stack-trace")]
     stack_trace: Vec<String>,
 
     /// Is this a new error?
@@ -674,6 +685,7 @@ impl ErrorData {
     fn new(error_code: Value, error_msg: &str) -> Self {
         Self {
             error_code,
+            #[cfg(feature = "error-stack-trace")]
             stack_trace: vec![error_msg.into()],
             is_new: true,
         }
@@ -685,6 +697,7 @@ impl ErrorData {
     fn rethrow(error_code: Value, error_info: &str) -> Self {
         Self {
             error_code,
+            #[cfg(feature = "error-stack-trace")]
             stack_trace: vec![error_info.into()],
             is_new: false,
         }
@@ -702,12 +715,26 @@ impl ErrorData {
 
     /// Returns the human-readable stack trace as a string.
     pub fn error_info(&self) -> Value {
-        Value::from(self.stack_trace.join("\n"))
+        #[cfg(feature = "error-stack-trace")]
+        {
+            Value::from(self.stack_trace.join("\n"))
+        }
+        #[cfg(not(feature = "error-stack-trace"))]
+        {
+            Value::empty()
+        }
     }
 
     /// Adds to the stack trace, which, having been extended, is no longer new.
     pub(crate) fn add_info(&mut self, info: &str) {
-        self.stack_trace.push(info.into());
+        #[cfg(feature = "error-stack-trace")]
+        {
+            self.stack_trace.push(info.into());
+        }
+        self.is_new = false;
+    }
+
+    pub(crate) fn mark_not_new(&mut self) {
         self.is_new = false;
     }
 }

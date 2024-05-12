@@ -871,7 +871,7 @@ impl Interp {
     /// Evaluates a parsed Script, producing a normal MoltResult.
     /// Also used by expr.rs.
     pub(crate) fn eval_script(&mut self, script: &Script) -> MoltResult {
-        let mut result_value = Value::empty();
+        let mut result_value = None;
 
         for word_vec in script.commands() {
             let words = self.eval_word_vec(word_vec.words())?;
@@ -882,15 +882,17 @@ impl Interp {
 
             let name = words[0].as_str();
 
-            if let Some(cmd) = self.commands.get(name) {
-                // let start = Instant::now();
-                let cmd = Rc::clone(cmd);
-                let result = cmd.execute(self, words.as_slice());
-                // self.profile_save(&format!("cmd.execute({})", name), start);
+            let cmd = self.commands.get(name)
+                .ok_or_else(|| Exception::molt_err(Value::from(format!("invalid cmmmand name \"{}\"", name))))?;
 
-                if let Ok(v) = result {
-                    result_value = v;
-                } else if let Err(mut exception) = result {
+            // let start = Instant::now();
+            let cmd = Rc::clone(cmd);
+            let result = cmd.execute(self, words.as_slice());
+            // self.profile_save(&format!("cmd.execute({})", name), start);
+
+            match result {
+                Ok(v) => result_value = Some(v),
+                Err(mut exception) => {
                     // TODO: I think this needs to be done up above.
                     // // Handle the return -code, -level protocol
                     // if exception.code() == ResultCode::Return {
@@ -899,6 +901,7 @@ impl Interp {
 
                     match exception.code() {
                         // ResultCode::Okay => result_value = exception.value(),
+                        #[cfg(feature = "error-stack-trace")]
                         ResultCode::Error => {
                             // FIRST, new error, an error from within a proc, or an error from
                             // within some other body (ignored).
@@ -920,17 +923,19 @@ impl Interp {
                             exception.add_error_info(&format!("\"{}\"", &list_to_string(&words)));
                             return Err(exception);
                         }
+                        #[cfg(not(feature = "error-stack-trace"))]
+                        ResultCode::Error => {
+                            exception.mark_not_new();
+                            return Err(exception);
+                        }
+
                         _ => return Err(exception),
                     }
-                } else {
-                    unreachable!();
                 }
-            } else {
-                return molt_err!("invalid command name \"{}\"", name);
             }
         }
 
-        Ok(result_value)
+        Ok(result_value.unwrap_or_default())
     }
 
     /// Evaluates a WordVec, producing a list of Values.  The expansion operator is handled

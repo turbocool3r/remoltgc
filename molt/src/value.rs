@@ -465,10 +465,6 @@ impl Value {
     /// assert_eq!(value.as_str(), "123");
     /// ```
     pub fn as_str(&self) -> &str {
-        &*self.as_cow_str()
-    }
-
-    pub fn as_cow_str(&self) -> &Cow<'static, str> {
         // FIRST, get the string rep, computing it from the data_rep if necessary.
         // self.inner.string_rep.get_or_init(|| (self.inner.data_rep.borrow()).to_string())
 

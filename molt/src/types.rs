@@ -62,8 +62,7 @@ pub type MoltFloat = f64;
 /// that implements and works with Molt commands.  A list is a vector of `Value`s.
 pub type MoltList = Vec<Value>;
 
-#[allow(deprecated)]
-pub(crate) type MoltHasher = core::hash::BuildHasherDefault<core::hash::SipHasher>;
+pub(crate) type MoltHasher = fnv::FnvBuildHasher;
 
 /// The standard dictionary type for Molt code.
 ///

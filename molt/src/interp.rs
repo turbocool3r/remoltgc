@@ -444,6 +444,7 @@ use crate::check_args;
 use crate::commands;
 #[cfg(feature = "dict")]
 use crate::dict::dict_new;
+#[cfg(feature = "expr")]
 use crate::expr;
 use crate::molt_err;
 use crate::molt_ok;
@@ -701,10 +702,12 @@ impl Interp {
             ("unset", commands::cmd_unset),
             ("foreach", commands::cmd_foreach),
             ("string", commands::cmd_string),
-            ("expr", commands::cmd_expr),
             ("for", commands::cmd_for),
             ("if", commands::cmd_if),
             ("while", commands::cmd_while),
+
+            #[cfg(feature = "expr")]
+            ("expr", commands::cmd_expr),
 
             #[cfg(feature = "dict")]
             ("dict", commands::cmd_dict),
@@ -1065,6 +1068,7 @@ impl Interp {
     /// # Ok("dummy".to_string())
     /// # }
     /// ```
+    #[cfg(feature = "expr")]
     pub fn expr(&mut self, expr: &Value) -> MoltResult {
         // Evaluate the expression and set the errorInfo/errorCode.
         let result = expr::expr(self, expr);
@@ -1095,7 +1099,13 @@ impl Interp {
     /// # }
     /// ```
     pub fn expr_bool(&mut self, expr: &Value) -> Result<bool, Exception> {
-        self.expr(expr)?.as_bool()
+        cfg_if::cfg_if! {
+            if #[cfg(feature = "expr")] {
+                self.expr(expr)?.as_bool()
+            } else {
+                self.eval_value(expr)?.as_bool()
+            }
+        }
     }
 
     /// Evaluates a [Molt expression](https://wduquette.github.io/molt/ref/expr.html)
@@ -1117,6 +1127,7 @@ impl Interp {
     /// # Ok("dummy".to_string())
     /// # }
     /// ```
+    #[cfg(feature = "expr")]
     pub fn expr_int(&mut self, expr: &Value) -> Result<MoltInt, Exception> {
         self.expr(expr)?.as_int()
     }
@@ -1140,7 +1151,7 @@ impl Interp {
     /// # Ok("dummy".to_string())
     /// # }
     /// ```
-    #[cfg(feature = "float")]
+    #[cfg(all(feature = "float", feature = "expr"))]
     pub fn expr_float(&mut self, expr: &Value) -> Result<MoltFloat, Exception> {
         self.expr(expr)?.as_float()
     }

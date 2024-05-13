@@ -386,7 +386,7 @@ pub fn cmd_exit(_interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltOptRe
 /// ## TCL Liens
 ///
 /// See the Molt Book.
-
+#[cfg(feature = "expr")]
 pub fn cmd_expr(interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltOptResult {
     check_args(1, argv, 2, 2, "expr")?;
 

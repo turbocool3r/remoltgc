@@ -37,6 +37,7 @@ mod commands;
 #[cfg(feature = "dict")]
 pub mod dict;
 mod eval_ptr;
+#[cfg(feature = "expr")]
 mod expr;
 pub mod interp;
 mod list;

@@ -168,6 +168,7 @@
 #[cfg(feature = "dict")]
 use crate::dict::{dict_to_string, list_to_dict};
 
+#[cfg(feature = "expr")]
 use crate::expr::Datum;
 use crate::list::get_list;
 use crate::list::list_to_string;
@@ -1098,6 +1099,7 @@ impl Value {
     }
 
     /// For use by `expr::expr` in parsing out `Values`.
+    #[cfg(feature = "expr")]
     pub(crate) fn already_number(&self) -> Option<Datum> {
         let iref = self.inner.data_rep.borrow();
 

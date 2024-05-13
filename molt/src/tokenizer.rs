@@ -188,7 +188,7 @@ impl<'a> Tokenizer<'a> {
 
                     let octal = &self.input[start..self.index];
 
-                    let val = u8::from_str_radix(octal, 8).unwrap();
+                    let val = u8::from_str_radix(octal, 8).map_err(|_| ()).unwrap();
                     val as char
                 }
 
@@ -215,7 +215,7 @@ impl<'a> Tokenizer<'a> {
 
                     let hex = &self.input[mark..self.index];
 
-                    let val = u32::from_str_radix(hex, 16).unwrap();
+                    let val = u32::from_str_radix(hex, 16).map_err(|_| ()).unwrap();
                     if let Some(ch) = char::from_u32(val) {
                         ch
                     } else {

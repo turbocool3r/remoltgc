@@ -652,7 +652,7 @@ impl Interp {
             profile_map: IndexMap::default(),
         };
 
-        interp.set_scalar("errorInfo", Value::empty()).unwrap();
+        interp.set_scalar("errorInfo", Value::empty()).map_err(|_| ()).unwrap();
         interp
     }
 
@@ -1895,7 +1895,7 @@ impl Interp {
                 let vec: MoltList = proc
                     .parms
                     .iter()
-                    .map(|item| item.as_list().expect("invalid proc parms")[0].clone())
+                    .map(|item| item.as_list().map_err(|_|()).expect("invalid proc parms")[0].clone())
                     .collect();
                 return molt_ok!(Value::from(vec));
             }
@@ -2253,7 +2253,7 @@ impl Procedure {
                 break;
             }
 
-            let vec = arg.as_list().expect("error in proc arglist validation!");
+            let vec = arg.as_list().map_err(|_| ()).expect("error in proc arglist validation!");
 
             if vec.len() == 1 {
                 msg.push_str(vec[0].as_str());

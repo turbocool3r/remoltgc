@@ -422,7 +422,7 @@ impl From<MoltList> for Value {
     /// assert_eq!(value.as_str(), "1234 abc");
     /// ```
     fn from(list: MoltList) -> Self {
-        Value::inner_from_data(DataRep::List(Rc::new(list)))
+        Value::inner_from_data(DataRep::List(list))
     }
 }
 
@@ -439,7 +439,7 @@ impl From<&[Value]> for Value {
     /// assert_eq!(value.as_str(), "1234 abc");
     /// ```
     fn from(list: &[Value]) -> Self {
-        Value::inner_from_data(DataRep::List(Rc::new(list.to_vec())))
+        Value::inner_from_data(DataRep::List(list.to_vec()))
     }
 }
 
@@ -842,7 +842,7 @@ impl Value {
     /// # fn dummy() -> Result<String,Exception> {
     ///
     /// let value = Value::from("1234 abc");
-    /// let list: Rc<MoltList> = value.as_list()?;
+    /// let list = value.as_list()?;
     /// assert_eq!(list.len(), 2);
     ///
     /// assert_eq!(list[0], Value::from("1234"));
@@ -851,18 +851,29 @@ impl Value {
     /// # Ok("dummy".to_string())
     /// # }
     /// ```
-    pub fn as_list(&self) -> Result<Rc<MoltList>, Exception> {
+    pub fn as_list(&self) -> Result<Ref<'_, MoltList>, Exception> {
         // FIRST, if we have the desired type, return it.
-        if let DataRep::List(list) = &*self.inner.data_rep.borrow() {
-            return Ok(list.clone());
+        {
+            let mr = Ref::filter_map(self.inner.data_rep.borrow(), |r| if let DataRep::List(list) = r {
+                Some(list)
+            } else {
+                None
+            });
+            if let Ok(list) = mr {
+                return Ok(list);
+            }
         }
 
         // NEXT, try to parse the string_rep as a list.
         let str = self.as_str();
-        let list = Rc::new(get_list(str)?);
-        *self.inner.data_rep.borrow_mut() = DataRep::List(list.clone());
+        let list = get_list(str)?;
+        *self.inner.data_rep.borrow_mut() = DataRep::List(list);
 
-        Ok(list)
+        Ok(Ref::filter_map(self.inner.data_rep.borrow(), |r| if let DataRep::List(list) = r {
+            Some(list)
+        } else {
+            None
+        }).map_err(|_| ()).unwrap())
     }
 
     /// Tries to return the `Value` as a `MoltList`, parsing the
@@ -1164,7 +1175,7 @@ enum DataRep {
     Flt(MoltFloat),
 
     /// A Molt List
-    List(Rc<MoltList>),
+    List(MoltList),
 
     /// A Script
     Script(Rc<Script>),

@@ -794,14 +794,15 @@ pub fn lindex_into(list: &Value, indices: &[Value]) -> MoltOptResult {
     let mut value: Value = list.clone();
 
     for index_val in indices {
-        let list = value.as_list()?;
-        let index = index_val.as_int()?;
+        let next_value = {
+            let list = value.as_list()?;
+            let index = index_val.as_int()?;
 
-        value = if index < 0 || index as usize >= list.len() {
-            Value::empty()
-        } else {
-            list[index as usize].clone()
+            let index = usize::try_from(index).unwrap_or(list.len());
+
+            list.get(index).cloned().unwrap_or_default()
         };
+        value = next_value;
     }
 
     molt_opt_ok!(value)

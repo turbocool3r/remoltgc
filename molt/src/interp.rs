@@ -162,7 +162,7 @@
 //! # }
 //!
 //! // The command: square intValue
-//! fn cmd_square(_: &mut Interp, _: ContextID, argv: &[Value]) -> MoltOptResult {
+//! fn cmd_square(_: &mut Interp, argv: &[Value]) -> MoltOptResult {
 //!     // FIRST, check the number of arguments.  Returns an appropriate error
 //!     // for the wrong number of arguments.
 //!     check_args(1, argv, 2, 2, "intValue")?;
@@ -228,7 +228,7 @@
 //! use molt::molt_ok;
 //! use molt::types::*;
 //!
-//! pub fn cmd_set(interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResult {
+//! pub fn cmd_set(interp: &mut Interp, argv: &[Value]) -> MoltResult {
 //!    check_args(1, argv, 2, 3, "varName ?newValue?")?;
 //!
 //!    if argv.len() == 3 {
@@ -292,11 +292,11 @@
 //!     // ...
 //! ];
 //!
-//! pub fn cmd_array(interp: &mut Interp, context_id: ContextID, argv: &[Value]) -> MoltResult {
-//!     interp.call_subcommand(context_id, argv, 1, &ARRAY_SUBCOMMANDS)
+//! pub fn cmd_array(interp: &mut Interp, argv: &[Value]) -> MoltResult {
+//!     interp.call_subcommand(argv, 1, &ARRAY_SUBCOMMANDS)
 //! }
 //!
-//! pub fn cmd_array_exists(interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResult {
+//! pub fn cmd_array_exists(interp: &mut Interp, argv: &[Value]) -> MoltResult {
 //!     check_args(2, argv, 3, 3, "arrayName")?;
 //!     molt_ok!(Value::from(interp.array_exists(argv[2].as_str())))
 //! }
@@ -451,7 +451,7 @@ impl Command {
     fn execute(&self, interp: &mut Interp, argv: &[Value]) -> MoltResult {
         match self {
             Command::Native(func) => {
-                Ok(func(interp, NULL_CONTEXT, argv)?.unwrap_or_default())
+                Ok(func(interp, argv)?.unwrap_or_default())
             }
             Command::Closure(func) => Ok(func(interp, argv)?.unwrap_or_default()),
             Command::Proc(proc) => proc.execute(interp, argv),
@@ -472,17 +472,6 @@ impl Command {
         matches!(self, Command::Proc(_))
     }
 }
-
-/// Sentinal value for command functions with no related context.
-///
-/// **NOTE**: it would make no sense to use `Option<ContextID>` instead of a sentinal
-/// value.  Whether or not a command has related context is known at compile
-/// time, and is an essential part of the command's definition; it never changes.
-/// Commands with context will access the function's context_id argument; and
-/// and commands without have no reason to do so.  Using a sentinel allows the same
-/// function type to be used for all binary Molt commands with minimal hassle to the
-/// client developer.
-const NULL_CONTEXT: ContextID = ContextID(0);
 
 #[cfg(feature = "std")]
 struct ProfileRecord {
@@ -1790,14 +1779,13 @@ impl Interp {
     /// [module level documentation](index.html) for examples.
     pub fn call_subcommand(
         &mut self,
-        context_id: ContextID,
         argv: &[Value],
         subc: usize,
         subcommands: &[Subcommand],
     ) -> MoltOptResult {
         check_args(subc, argv, subc + 1, 0, "subcommand ?arg ...?")?;
         let rec = Subcommand::find(subcommands, argv[subc].as_str())?;
-        (rec.1)(self, context_id, argv)
+        (rec.1)(self, argv)
     }
 
     //--------------------------------------------------------------------------------------------

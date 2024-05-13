@@ -22,13 +22,15 @@
 //!
 //! See the Molt Book (or the Molt test suite) for examples of test scripts.
 
+use alloc::rc::Rc;
+
 use crate::check_args;
-use crate::types::ContextID;
 use crate::Interp;
 use crate::MoltOptResult;
 use crate::MoltResult;
 use crate::ResultCode;
 use crate::Value;
+use core::cell::RefCell;
 use std::env;
 use std::fs;
 use std::path::PathBuf;
@@ -80,10 +82,22 @@ pub fn test_harness(interp: &mut Interp, args: &[String]) -> Result<(), ()> {
     let path = PathBuf::from(&args[0]);
 
     // NEXT, initialize the test result.
-    let context_id = interp.save_context(TestContext::new());
+    let context = Rc::new(RefCell::new(TestContext::new()));
 
     // NEXT, install the test commands into the interpreter.
-    interp.add_context_command("test", test_cmd, context_id);
+    let ctxclone = context.clone();
+    interp.add_command_closure("test", move |interp, argv| {
+        // FIRST, check the minimum command line.
+        check_args(1, argv, 4, 0, "name description args...")?;
+
+        // NEXT, see which kind of command it is.
+        let arg = argv[3].as_str();
+        if arg.starts_with('-') {
+            fancy_test(interp, &ctxclone, argv)
+        } else {
+            simple_test(interp, &ctxclone, argv)
+        }
+    });
 
     // NEXT, execute the script.
     match fs::read_to_string(&args[0]) {
@@ -109,7 +123,7 @@ pub fn test_harness(interp: &mut Interp, args: &[String]) -> Result<(), ()> {
     }
 
     // NEXT, output the test results:
-    let ctx = interp.context::<TestContext>(context_id);
+    let ctx = context.borrow();
     println!(
         "\n{} tests, {} passed, {} failed, {} errors",
         ctx.num_tests, ctx.num_passed, ctx.num_failed, ctx.num_errors
@@ -210,29 +224,8 @@ impl TestInfo {
     }
 }
 
-/// # test *name* *script* -ok|-error *result*
-///
-/// Executes the script expecting either a successful response or an error.
-///
-/// Note: This is an extremely minimal replacement for tcltest; at some
-/// point I'll need something much more robust.
-///
-/// Note: See the Molt Book for the full syntax.
-fn test_cmd(interp: &mut Interp, context_id: ContextID, argv: &[Value]) -> MoltOptResult {
-    // FIRST, check the minimum command line.
-    check_args(1, argv, 4, 0, "name description args...")?;
-
-    // NEXT, see which kind of command it is.
-    let arg = argv[3].as_str();
-    if arg.starts_with('-') {
-        fancy_test(interp, context_id, argv)
-    } else {
-        simple_test(interp, context_id, argv)
-    }
-}
-
 // The simple version of the test command.
-fn simple_test(interp: &mut Interp, context_id: ContextID, argv: &[Value]) -> MoltOptResult {
+fn simple_test(interp: &mut Interp, context: &RefCell<TestContext>, argv: &[Value]) -> MoltOptResult {
     check_args(1, argv, 6, 6, "name description script -ok|-error result")?;
 
     // FIRST, get the test info
@@ -247,19 +240,19 @@ fn simple_test(interp: &mut Interp, context_id: ContextID, argv: &[Value]) -> Mo
     } else if code == "-error" {
         Code::Error
     } else {
-        incr_errors(interp, context_id);
+        incr_errors(context);
         info.print_helper_error("test command", &format!("invalid option: \"{}\"", code));
 
         return molt_opt_ok!();
     };
 
     // NEXT, run the test.
-    run_test(interp, context_id, &info);
+    run_test(interp, context, &info);
     molt_opt_ok!()
 }
 
 // The fancier, more flexible version of the test.
-fn fancy_test(interp: &mut Interp, context_id: ContextID, argv: &[Value]) -> MoltOptResult {
+fn fancy_test(interp: &mut Interp, context: &RefCell<TestContext>, argv: &[Value]) -> MoltOptResult {
     check_args(
         1,
         argv,
@@ -280,7 +273,7 @@ fn fancy_test(interp: &mut Interp, context_id: ContextID, argv: &[Value]) -> Mol
 
         let val = iter.next();
         if val.is_none() {
-            incr_errors(interp, context_id);
+            incr_errors(context);
             info.print_helper_error("test command", &format!("missing value for {}", opt));
             return molt_opt_ok!();
         }
@@ -299,7 +292,7 @@ fn fancy_test(interp: &mut Interp, context_id: ContextID, argv: &[Value]) -> Mol
                 info.expect = val.to_string();
             }
             _ => {
-                incr_errors(interp, context_id);
+                incr_errors(context);
                 info.print_helper_error("test command", &format!("invalid option: \"{}\"", val));
                 return molt_opt_ok!();
             }
@@ -307,12 +300,12 @@ fn fancy_test(interp: &mut Interp, context_id: ContextID, argv: &[Value]) -> Mol
     }
 
     // NEXT, run the test.
-    run_test(interp, context_id, &info);
+    run_test(interp, context, &info);
     molt_opt_ok!()
 }
 
 // Run the actual test and save the result.
-fn run_test(interp: &mut Interp, context_id: ContextID, info: &TestInfo) {
+fn run_test(interp: &mut Interp, context: &RefCell<TestContext>, info: &TestInfo) {
     // FIRST, push a variable scope; -setup, -body, and -cleanup will share it.
     interp.push_scope();
 
@@ -346,7 +339,7 @@ fn run_test(interp: &mut Interp, context_id: ContextID, info: &TestInfo) {
     interp.pop_scope();
 
     // NEXT, get the context and save the results.
-    let ctx = interp.context::<TestContext>(context_id);
+    let mut ctx = context.borrow_mut();
     ctx.num_tests += 1;
 
     match &result {
@@ -378,6 +371,6 @@ fn run_test(interp: &mut Interp, context_id: ContextID, info: &TestInfo) {
 }
 
 // Increment the failure counter.
-fn incr_errors(interp: &mut Interp, context_id: ContextID) {
-    interp.context::<TestContext>(context_id).num_errors += 1;
+fn incr_errors(context: &RefCell<TestContext>) {
+    context.borrow_mut().num_errors += 1;
 }

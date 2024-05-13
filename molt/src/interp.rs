@@ -522,6 +522,8 @@ enum Command {
     /// A binary command implemented as a Rust CommandFunc.
     Native(CommandFunc, ContextID),
 
+    Closure(Box<dyn Fn(&mut Interp, &[Value]) -> Result<Option<Value>, Exception>>),
+
     /// A Molt procedure
     Proc(Procedure),
 }
@@ -533,6 +535,7 @@ impl Command {
             Command::Native(func, context_id) => {
                 Ok(func(interp, *context_id, argv)?.unwrap_or_default())
             }
+            Command::Closure(func) => Ok(func(interp, argv)?.unwrap_or_default()),
             Command::Proc(proc) => proc.execute(interp, argv),
         }
     }
@@ -541,6 +544,7 @@ impl Command {
     fn cmdtype(&self) -> Value {
         match self {
             Command::Native(_, _) => Value::from("native"),
+            Command::Closure(_) => Value::from("closure"),
             Command::Proc(_) => Value::from("proc"),
         }
     }
@@ -1689,6 +1693,10 @@ impl Interp {
 
     //--------------------------------------------------------------------------------------------
     // Command Definition and Handling
+
+    pub fn add_command_closure(&mut self, name: &str, func: impl (Fn(&mut Interp, &[Value]) -> MoltOptResult) + 'static) {
+        self.commands.insert(name.into(), Rc::new(Command::Closure(Box::new(func))));
+    }
 
     /// Adds a binary command with no related context to the interpreter.  This is the normal
     /// way to add most commands.

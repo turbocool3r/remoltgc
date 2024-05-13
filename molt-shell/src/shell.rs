@@ -1,6 +1,6 @@
-use molt::Interp;
-use molt::MoltList;
-use molt::Value;
+use remolt::Interp;
+use remolt::MoltList;
+use remolt::Value;
 use rustyline::error::ReadlineError;
 use rustyline::Editor;
 use std::fs;
@@ -21,7 +21,7 @@ use std::fs;
 /// # Example
 ///
 /// ```
-/// use molt::Interp;
+/// use remolt::Interp;
 ///
 /// // FIRST, create and initialize the interpreter.
 /// let mut interp = Interp::new();
@@ -29,7 +29,7 @@ use std::fs;
 /// // NOTE: commands can be added to the interpreter here.
 ///
 /// // NEXT, invoke the REPL.
-/// molt_shell::repl(&mut interp);
+/// remolt_shell::repl(&mut interp);
 /// ```
 pub fn repl(interp: &mut Interp) {
     let mut rl = Editor::<()>::new();
@@ -100,7 +100,7 @@ pub fn repl(interp: &mut Interp) {
 /// # Example
 ///
 /// ```
-/// use molt::Interp;
+/// use remolt::Interp;
 /// use std::env;
 ///
 /// // FIRST, get the command line arguments.
@@ -113,7 +113,7 @@ pub fn repl(interp: &mut Interp) {
 ///
 /// // NEXT, evaluate the file, if any.
 /// if args.len() > 1 {
-///     molt_shell::script(&mut interp, &args[1..]);
+///     remolt_shell::script(&mut interp, &args[1..]);
 /// } else {
 ///     eprintln!("Usage: myshell *filename.tcl");
 /// }

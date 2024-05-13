@@ -12,12 +12,12 @@
 //! See the Molt Book (or the Molt benchmark suite) for how to write
 //! benchmarks and examples of benchmark scripts.
 
-use molt::check_args;
-use molt::molt_opt_ok;
-use molt::Interp;
-use molt::MoltInt;
-use molt::MoltOptResult;
-use molt::Value;
+use remolt::check_args;
+use remolt::molt_opt_ok;
+use remolt::Interp;
+use remolt::MoltInt;
+use remolt::MoltOptResult;
+use remolt::Value;
 use std::cell::RefCell;
 use std::env;
 use std::fs;
@@ -38,7 +38,7 @@ use std::rc::Rc;
 /// # Example
 ///
 /// ```
-/// use molt::Interp;
+/// use remolt::Interp;
 /// use std::env;
 ///
 /// // FIRST, get the command line arguments.
@@ -51,7 +51,7 @@ use std::rc::Rc;
 ///
 /// // NEXT, evaluate the file, if any.
 /// if args.len() > 1 {
-///     molt_shell::benchmark(&mut interp, &args[1..]);
+///     remolt_shell::benchmark(&mut interp, &args[1..]);
 /// } else {
 ///     eprintln!("Usage: mybench *filename.tcl");
 /// }
@@ -227,7 +227,7 @@ struct Measurement {
 ///
 /// Records a benchmark measurement.
 fn measure_cmd(_interp: &mut Interp, ctx: &RefCell<Context>, argv: &[Value]) -> MoltOptResult {
-    molt::check_args(1, argv, 4, 4, "name description nanos")?;
+    remolt::check_args(1, argv, 4, 4, "name description nanos")?;
 
     // FIRST, get the arguments
     let name = argv[1].to_string();

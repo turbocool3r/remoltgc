@@ -283,8 +283,8 @@ impl Exception {
     /// # Example
     ///
     /// ```
-    /// # use molt::types::*;
-    /// # use molt::Interp;
+    /// # use remolt::types::*;
+    /// # use remolt::Interp;
     ///
     /// let mut interp = Interp::new();
     /// let input = "throw MYERR \"Error Message\"";
@@ -331,8 +331,8 @@ impl Exception {
     /// # Example
     ///
     /// ```
-    /// # use molt::types::*;
-    /// # use molt::Interp;
+    /// # use remolt::types::*;
+    /// # use remolt::Interp;
     ///
     /// let mut interp = Interp::new();
     /// let input = "throw MYERR \"Error Message\"";
@@ -362,8 +362,8 @@ impl Exception {
     /// called used the `return` command's `-level` option (or the Rust equivalent).
     ///
     /// ```
-    /// # use molt::types::*;
-    /// # use molt::Interp;
+    /// # use remolt::types::*;
+    /// # use remolt::Interp;
     ///
     /// let mut interp = Interp::new();
     /// let input = "throw MYERR \"Error Message\"";
@@ -397,8 +397,8 @@ impl Exception {
     /// called used the `return` command's `-level` option (or the Rust equivalent).
     ///
     /// ```
-    /// # use molt::types::*;
-    /// # use molt::Interp;
+    /// # use remolt::types::*;
+    /// # use remolt::Interp;
     ///
     /// let mut interp = Interp::new();
     /// let input = "throw MYERR \"Error Message\"";
@@ -436,8 +436,8 @@ impl Exception {
     /// # Example
     ///
     /// ```
-    /// # use molt::types::*;
-    /// # use molt::Interp;
+    /// # use remolt::types::*;
+    /// # use remolt::Interp;
     ///
     /// let mut interp = Interp::new();
     /// let input = "throw MYERR \"Error Message\"";
@@ -475,7 +475,7 @@ impl Exception {
     /// # Example
     ///
     /// ```
-    /// # use molt::types::*;
+    /// # use remolt::types::*;
     ///
     /// let ex = Exception::molt_err("error message".into());
     /// assert!(ex.is_error());
@@ -505,7 +505,7 @@ impl Exception {
     /// # Example
     ///
     /// ```
-    /// # use molt::types::*;
+    /// # use remolt::types::*;
     ///
     /// let ex = Exception::molt_err2("MYERR".into(), "error message".into());
     /// assert!(ex.is_error());

@@ -35,7 +35,7 @@
 //! empty interpreter.
 //!
 //! ```
-//! use molt::Interp;
+//! use remolt::Interp;
 //! let mut interp = Interp::new();
 //!
 //! // add commands, evaluate scripts, etc.
@@ -53,9 +53,9 @@
 //! For example, the following snippet uses the Molt `expr` command to evaluate an expression.
 //!
 //! ```
-//! use molt::Interp;
-//! use molt::molt_ok;
-//! use molt::types::*;
+//! use remolt::Interp;
+//! use remolt::molt_ok;
+//! use remolt::types::*;
 //!
 //! let _ = my_func();
 //!
@@ -107,9 +107,9 @@
 //! as in the `if` or `while` commands:
 //!
 //! ```
-//! use molt::Interp;
-//! use molt::molt_ok;
-//! use molt::types::*;
+//! use remolt::Interp;
+//! use remolt::molt_ok;
+//! use remolt::types::*;
 //!
 //! # let _ = dummy();
 //! # fn dummy() -> MoltResult {
@@ -144,10 +144,10 @@
 //! The following example defines a command called `square` that squares an integer value.
 //!
 //! ```
-//! use molt::Interp;
-//! use molt::check_args;
-//! use molt::{molt_opt_ok, molt_ok};
-//! use molt::types::*;
+//! use remolt::Interp;
+//! use remolt::check_args;
+//! use remolt::{molt_opt_ok, molt_ok};
+//! use remolt::types::*;
 //!
 //! # let _ = dummy();
 //! # fn dummy() -> MoltResult {
@@ -223,10 +223,10 @@
 //! for example, returns the assigned or retrieved value; it is defined like this:
 //!
 //! ```
-//! use molt::Interp;
-//! use molt::check_args;
-//! use molt::molt_ok;
-//! use molt::types::*;
+//! use remolt::Interp;
+//! use remolt::check_args;
+//! use remolt::molt_ok;
+//! use remolt::types::*;
 //!
 //! pub fn cmd_set(interp: &mut Interp, argv: &[Value]) -> MoltResult {
 //!    check_args(1, argv, 2, 3, "varName ?newValue?")?;
@@ -407,9 +407,9 @@ use std::time::Instant;
 /// Molt commands.
 ///
 /// ```
-/// use molt::types::*;
-/// use molt::Interp;
-/// use molt::molt_ok;
+/// use remolt::types::*;
+/// use remolt::Interp;
+/// use remolt::molt_ok;
 /// # fn dummy() -> MoltResult {
 /// let mut interp = Interp::new();
 /// let four = interp.eval("expr {2 + 2}")?;
@@ -503,7 +503,7 @@ impl Interp {
     /// # Example
     ///
     /// ```
-    /// # use molt::interp::Interp;
+    /// # use remolt::interp::Interp;
     /// let mut interp = Interp::empty();
     /// assert!(interp.command_names().is_empty());
     /// ```
@@ -531,9 +531,9 @@ impl Interp {
     /// add or remove them in groups).
     ///
     /// ```
-    /// # use molt::types::*;
-    /// # use molt::Interp;
-    /// # use molt::molt_ok;
+    /// # use remolt::types::*;
+    /// # use remolt::Interp;
+    /// # use remolt::molt_ok;
     /// # fn dummy() -> MoltResult {
     /// let mut interp = Interp::new();
     /// let four = interp.eval("expr {2 + 2}")?;
@@ -644,8 +644,8 @@ impl Interp {
     /// it's a computed `Value` or an error message (which is also a `Value`).
     ///
     /// ```
-    /// # use molt::types::*;
-    /// # use molt::Interp;
+    /// # use remolt::types::*;
+    /// # use remolt::Interp;
     ///
     /// let mut interp = Interp::new();
     ///
@@ -908,8 +908,8 @@ impl Interp {
     /// # Example
     ///
     /// ```
-    /// # use molt::types::*;
-    /// # use molt::interp::Interp;
+    /// # use remolt::types::*;
+    /// # use remolt::interp::Interp;
     /// let mut interp = Interp::new();
     /// assert!(interp.complete("set a [expr {1+1}]"));
     /// assert!(!interp.complete("set a [expr {1+1"));
@@ -925,8 +925,8 @@ impl Interp {
     ///
     /// # Example
     /// ```
-    /// use molt::Interp;
-    /// use molt::types::*;
+    /// use remolt::Interp;
+    /// use remolt::types::*;
     /// # fn dummy() -> Result<String,Exception> {
     /// let mut interp = Interp::new();
     /// let expr = Value::from("2 + 2");
@@ -954,8 +954,8 @@ impl Interp {
     /// # Example
     ///
     /// ```
-    /// use molt::Interp;
-    /// use molt::types::*;
+    /// use remolt::Interp;
+    /// use remolt::types::*;
     /// # fn dummy() -> Result<String,Exception> {
     /// let mut interp = Interp::new();
     ///
@@ -983,8 +983,8 @@ impl Interp {
     /// # Example
     ///
     /// ```
-    /// use molt::Interp;
-    /// use molt::types::*;
+    /// use remolt::Interp;
+    /// use remolt::types::*;
     /// # fn dummy() -> Result<String,Exception> {
     /// let mut interp = Interp::new();
     ///
@@ -1007,8 +1007,8 @@ impl Interp {
     /// # Example
     ///
     /// ```
-    /// use molt::Interp;
-    /// use molt::types::*;
+    /// use remolt::Interp;
+    /// use remolt::types::*;
     /// # fn dummy() -> Result<String,Exception> {
     /// let mut interp = Interp::new();
     ///
@@ -1037,9 +1037,9 @@ impl Interp {
     /// # Example
     ///
     /// ```
-    /// use molt::types::*;
-    /// use molt::Interp;
-    /// use molt::molt_ok;
+    /// use remolt::types::*;
+    /// use remolt::Interp;
+    /// use remolt::molt_ok;
     /// # fn dummy() -> MoltResult {
     /// let mut interp = Interp::new();
     ///
@@ -1086,9 +1086,9 @@ impl Interp {
     /// # Example
     ///
     /// ```
-    /// use molt::types::*;
-    /// use molt::Interp;
-    /// use molt::molt_ok;
+    /// use remolt::types::*;
+    /// use remolt::Interp;
+    /// use remolt::molt_ok;
     /// # fn dummy() -> MoltResult {
     /// let mut interp = Interp::new();
     ///
@@ -1124,9 +1124,9 @@ impl Interp {
     /// # Example
     ///
     /// ```
-    /// use molt::types::*;
-    /// use molt::Interp;
-    /// use molt::molt_ok;
+    /// use remolt::types::*;
+    /// use remolt::Interp;
+    /// use remolt::molt_ok;
     /// # fn dummy() -> MoltResult {
     /// let mut interp = Interp::new();
     ///
@@ -1153,9 +1153,9 @@ impl Interp {
     /// # Example
     ///
     /// ```
-    /// use molt::types::*;
-    /// use molt::Interp;
-    /// use molt::molt_ok;
+    /// use remolt::types::*;
+    /// use remolt::Interp;
+    /// use remolt::molt_ok;
     /// # fn dummy() -> MoltResult {
     /// let mut interp = Interp::new();
     ///
@@ -1180,9 +1180,9 @@ impl Interp {
     /// # Example
     ///
     /// ```
-    /// use molt::types::*;
-    /// use molt::Interp;
-    /// use molt::molt_ok;
+    /// use remolt::types::*;
+    /// use remolt::Interp;
+    /// use remolt::molt_ok;
     /// # fn dummy() -> MoltResult {
     /// let mut interp = Interp::new();
     ///
@@ -1204,9 +1204,9 @@ impl Interp {
     /// # Example
     ///
     /// ```
-    /// use molt::types::*;
-    /// use molt::Interp;
-    /// use molt::molt_ok;
+    /// use remolt::types::*;
+    /// use remolt::Interp;
+    /// use remolt::molt_ok;
     /// # fn dummy() -> MoltResult {
     /// let mut interp = Interp::new();
     ///
@@ -1231,9 +1231,9 @@ impl Interp {
     /// # Example
     ///
     /// ```
-    /// use molt::types::*;
-    /// use molt::Interp;
-    /// use molt::molt_ok;
+    /// use remolt::types::*;
+    /// use remolt::Interp;
+    /// use remolt::molt_ok;
     /// # fn dummy() -> MoltResult {
     /// let mut interp = Interp::new();
     ///
@@ -1256,9 +1256,9 @@ impl Interp {
     /// # Example
     ///
     /// ```
-    /// use molt::types::*;
-    /// use molt::Interp;
-    /// use molt::molt_ok;
+    /// use remolt::types::*;
+    /// use remolt::Interp;
+    /// use remolt::molt_ok;
     /// # fn dummy() -> MoltResult {
     /// let mut interp = Interp::new();
     ///
@@ -1281,9 +1281,9 @@ impl Interp {
     /// # Example
     ///
     /// ```
-    /// use molt::types::*;
-    /// use molt::Interp;
-    /// use molt::molt_ok;
+    /// use remolt::types::*;
+    /// use remolt::Interp;
+    /// use remolt::molt_ok;
     /// # fn dummy() -> MoltResult {
     /// let mut interp = Interp::new();
     ///
@@ -1314,9 +1314,9 @@ impl Interp {
     /// # Example
     ///
     /// ```
-    /// use molt::types::*;
-    /// use molt::Interp;
-    /// use molt::molt_ok;
+    /// use remolt::types::*;
+    /// use remolt::Interp;
+    /// use remolt::molt_ok;
     /// # fn dummy() -> MoltResult {
     /// let mut interp = Interp::new();
     ///
@@ -1336,8 +1336,8 @@ impl Interp {
     /// # Example
     ///
     /// ```
-    /// use molt::Interp;
-    /// use molt::types::*;
+    /// use remolt::Interp;
+    /// use remolt::types::*;
     ///
     /// # let mut interp = Interp::new();
     /// for name in interp.vars_in_scope() {
@@ -1354,8 +1354,8 @@ impl Interp {
     /// # Example
     ///
     /// ```
-    /// use molt::Interp;
-    /// use molt::types::*;
+    /// use remolt::Interp;
+    /// use remolt::types::*;
     ///
     /// # let mut interp = Interp::new();
     /// for name in interp.vars_in_global_scope() {
@@ -1374,8 +1374,8 @@ impl Interp {
     /// # Example
     ///
     /// ```
-    /// use molt::Interp;
-    /// use molt::types::*;
+    /// use remolt::Interp;
+    /// use remolt::types::*;
     ///
     /// # let mut interp = Interp::new();
     /// for name in interp.vars_in_local_scope() {
@@ -1440,9 +1440,9 @@ impl Interp {
     /// # Example
     ///
     /// ```
-    /// # use molt::Interp;
-    /// # use molt::types::*;
-    /// # use molt::molt_ok;
+    /// # use remolt::Interp;
+    /// # use remolt::types::*;
+    /// # use remolt::molt_ok;
     /// # fn dummy() -> MoltResult {
     /// # let mut interp = Interp::new();
     /// interp.set_scalar("a", Value::from(1))?;
@@ -1463,8 +1463,8 @@ impl Interp {
     /// # Example
     ///
     /// ```
-    /// use molt::Interp;
-    /// use molt::types::*;
+    /// use remolt::Interp;
+    /// use remolt::types::*;
     ///
     /// # let mut interp = Interp::new();
     /// for txt in interp.array_get("myArray") {
@@ -1493,9 +1493,9 @@ impl Interp {
     /// ```
     ///
     /// ```
-    /// use molt::Interp;
-    /// use molt::types::*;
-    /// # use molt::molt_ok;
+    /// use remolt::Interp;
+    /// use remolt::types::*;
+    /// # use remolt::molt_ok;
     ///
     /// # fn dummy() -> MoltResult {
     /// # let mut interp = Interp::new();
@@ -1519,8 +1519,8 @@ impl Interp {
     /// # Example
     ///
     /// ```
-    /// use molt::Interp;
-    /// use molt::types::*;
+    /// use remolt::Interp;
+    /// use remolt::types::*;
     ///
     /// # let mut interp = Interp::new();
     /// for name in interp.array_names("myArray") {
@@ -1537,10 +1537,10 @@ impl Interp {
     /// # Example
     ///
     /// ```
-    /// use molt::Interp;
-    /// use molt::types::*;
+    /// use remolt::Interp;
+    /// use remolt::types::*;
     ///
-    /// # use molt::molt_ok;
+    /// # use remolt::molt_ok;
     /// # fn dummy() -> MoltResult {
     /// let mut interp = Interp::new();
     ///
@@ -1607,9 +1607,9 @@ impl Interp {
     /// # Example
     ///
     /// ```
-    /// use molt::Interp;
-    /// use molt::types::*;
-    /// use molt::molt_ok;
+    /// use remolt::Interp;
+    /// use remolt::types::*;
+    /// use remolt::molt_ok;
     /// # fn dummy() -> MoltResult {
     /// let mut interp = Interp::new();
     ///
@@ -1636,9 +1636,9 @@ impl Interp {
     /// # Example
     ///
     /// ```
-    /// use molt::Interp;
-    /// use molt::types::*;
-    /// use molt::molt_ok;
+    /// use remolt::Interp;
+    /// use remolt::types::*;
+    /// use remolt::molt_ok;
     ///
     /// let mut interp = Interp::new();
     ///
@@ -1655,9 +1655,9 @@ impl Interp {
     /// # Example
     ///
     /// ```
-    /// use molt::Interp;
-    /// use molt::types::*;
-    /// use molt::molt_ok;
+    /// use remolt::Interp;
+    /// use remolt::types::*;
+    /// use remolt::molt_ok;
     ///
     /// let mut interp = Interp::new();
     ///
@@ -1691,9 +1691,9 @@ impl Interp {
     /// # Example
     ///
     /// ```
-    /// use molt::Interp;
-    /// use molt::types::*;
-    /// use molt::molt_ok;
+    /// use remolt::Interp;
+    /// use remolt::types::*;
+    /// use remolt::molt_ok;
     ///
     /// let mut interp = Interp::new();
     ///
@@ -1805,8 +1805,8 @@ impl Interp {
     ///
     /// # Example
     /// ```
-    /// # use molt::types::*;
-    /// # use molt::interp::Interp;
+    /// # use remolt::types::*;
+    /// # use remolt::interp::Interp;
     /// let mut interp = Interp::new();
     /// assert_eq!(interp.recursion_limit(), 1000);
     /// ```
@@ -1822,8 +1822,8 @@ impl Interp {
     ///
     /// # Example
     /// ```
-    /// # use molt::types::*;
-    /// # use molt::interp::Interp;
+    /// # use remolt::types::*;
+    /// # use remolt::interp::Interp;
     /// let mut interp = Interp::new();
     /// interp.set_recursion_limit(100);
     /// assert_eq!(interp.recursion_limit(), 100);

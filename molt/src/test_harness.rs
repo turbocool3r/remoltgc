@@ -49,7 +49,7 @@ use std::path::PathBuf;
 /// # Example
 ///
 /// ```
-/// use molt::Interp;
+/// use remolt::Interp;
 /// use std::env;
 ///
 /// // FIRST, get the command line arguments.
@@ -62,7 +62,7 @@ use std::path::PathBuf;
 ///
 /// // NEXT, evaluate the file, if any.
 /// if args.len() > 1 {
-///     molt::test_harness(&mut interp, &args[1..]);
+///     remolt::test_harness(&mut interp, &args[1..]);
 /// } else {
 ///     eprintln!("Usage: mytest *filename.tcl");
 /// }

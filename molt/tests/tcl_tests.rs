@@ -1,5 +1,4 @@
-extern crate molt;
-use molt::Interp;
+use remolt::Interp;
 
 #[test]
 fn test_tcl_tests() {
@@ -11,5 +10,5 @@ fn test_tcl_tests() {
 
     let args = vec![String::from("tests/all.tcl")];
 
-    assert!(molt::test_harness(&mut interp, &args).is_ok());
+    assert!(remolt::test_harness(&mut interp, &args).is_ok());
 }

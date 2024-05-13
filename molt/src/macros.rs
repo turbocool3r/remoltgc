@@ -13,7 +13,7 @@
 /// # Examples
 ///
 /// ```
-/// use molt::*;
+/// use remolt::*;
 ///
 /// // Return the empty result
 /// fn func1() -> MoltResult {
@@ -78,7 +78,7 @@ macro_rules! molt_opt_ok {
 /// # Examples
 ///
 /// ```
-/// use molt::*;
+/// use remolt::*;
 ///
 /// // Return a simple error message
 /// fn err1() -> MoltResult {
@@ -131,7 +131,7 @@ macro_rules! molt_err {
 /// # Examples
 ///
 /// ```
-/// use molt::*;
+/// use remolt::*;
 ///
 /// // Throw a simple error
 /// fn throw1() -> MoltResult {

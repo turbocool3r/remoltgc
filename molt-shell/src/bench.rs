@@ -13,15 +13,16 @@
 //! benchmarks and examples of benchmark scripts.
 
 use molt::check_args;
-use molt::molt_ok;
-use molt::ContextID;
+use molt::molt_opt_ok;
 use molt::Interp;
 use molt::MoltInt;
-use molt::MoltResult;
+use molt::MoltOptResult;
 use molt::Value;
+use std::cell::RefCell;
 use std::env;
 use std::fs;
 use std::path::PathBuf;
+use std::rc::Rc;
 
 /// Executes the Molt benchmark harness, given the command-line arguments,
 /// in the context of the given interpreter.
@@ -92,11 +93,14 @@ pub fn benchmark(interp: &mut Interp, args: &[String]) {
     let path = PathBuf::from(&args[0]);
 
     // NEXT, initialize the benchmark context.
-    let context_id = interp.save_context(Context::new());
+    let context = Rc::new(RefCell::new(Context::new()));
 
     // NEXT, install the test commands into the interpreter.
     interp.add_command("ident", cmd_ident);
-    interp.add_context_command("measure", measure_cmd, context_id);
+    {
+        let context = context.clone();
+        interp.add_command_closure("measure", move |interp, argv| measure_cmd(interp, &context, argv));
+    }
     interp.add_command("ok", cmd_ok);
 
     // NEXT, load the benchmark Tcl library
@@ -126,12 +130,12 @@ pub fn benchmark(interp: &mut Interp, args: &[String]) {
     }
 
     // NEXT, output the test results:
-    let ctx = interp.context::<Context>(context_id);
+    let context = context.borrow();
 
     if output_csv {
-        write_csv(ctx);
+        write_csv(&context);
     } else {
-        write_formatted_text(ctx);
+        write_formatted_text(&context);
     }
 }
 
@@ -222,7 +226,7 @@ struct Measurement {
 /// # measure *name* *description* *micros*
 ///
 /// Records a benchmark measurement.
-fn measure_cmd(interp: &mut Interp, context_id: ContextID, argv: &[Value]) -> MoltResult {
+fn measure_cmd(_interp: &mut Interp, ctx: &RefCell<Context>, argv: &[Value]) -> MoltOptResult {
     molt::check_args(1, argv, 4, 4, "name description nanos")?;
 
     // FIRST, get the arguments
@@ -231,8 +235,7 @@ fn measure_cmd(interp: &mut Interp, context_id: ContextID, argv: &[Value]) -> Mo
     let nanos = argv[3].as_int()?;
 
     // NEXT, get the test context
-    let ctx = interp.context::<Context>(context_id);
-
+    let mut ctx = ctx.borrow_mut();
     if ctx.baseline.is_none() {
         ctx.baseline = Some(nanos);
     }
@@ -245,21 +248,21 @@ fn measure_cmd(interp: &mut Interp, context_id: ContextID, argv: &[Value]) -> Mo
 
     ctx.measurements.push(record);
 
-    molt_ok!()
+    molt_opt_ok!()
 }
 
 /// # ident value
 ///
 /// Returns its argument.
-fn cmd_ident(_interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltResult {
+fn cmd_ident(_interp: &mut Interp, argv: &[Value]) -> MoltOptResult {
     check_args(1, argv, 2, 2, "value")?;
 
-    molt_ok!(argv[1].clone())
+    molt_opt_ok!(argv[1].clone())
 }
 
 /// # ok ...
 ///
 /// Takes any number of arguments, and returns "".
-fn cmd_ok(_interp: &mut Interp, _: ContextID, _argv: &[Value]) -> MoltResult {
-    molt_ok!()
+fn cmd_ok(_interp: &mut Interp, _argv: &[Value]) -> MoltOptResult {
+    molt_opt_ok!()
 }

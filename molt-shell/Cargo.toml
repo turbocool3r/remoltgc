@@ -2,7 +2,7 @@
 name = "molt-shell"
 version = "0.3.2"
 authors = ["Will Duquette <will@wjduquette.com>"]
-edition = "2018"
+edition = "2021"
 description = "Molt Application Frameworks"
 license = "BSD-3-Clause"
 repository = "https://github.com/wduquette/molt"

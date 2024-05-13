@@ -184,7 +184,7 @@ use crate::types::MoltList;
 use crate::types::VarName;
 use crate::util;
 use core::any::Any;
-use core::any::TypeId;
+use core::cell::Ref;
 use core::cell::RefCell;
 use core::cell::UnsafeCell;
 use core::fmt::Debug;
@@ -972,7 +972,7 @@ impl Value {
     where
         T: Display + Debug,
     {
-        Value::inner_from_data(DataRep::Other(Rc::new(value)))
+        Value::inner_from_data(DataRep::Other(Box::new(value)))
     }
 
     /// Tries to interpret the `Value` as a value of external type `T`, parsing
@@ -1011,31 +1011,36 @@ impl Value {
     ///     let b = *color.blue();
     /// }
     /// ```
-    pub fn as_other<T: 'static>(&self) -> Option<Rc<T>>
+    pub fn as_other<T: 'static>(&self) -> Option<Ref<'_, T>>
     where
         T: Display + Debug + FromStr,
     {
         // FIRST, if we have the desired type, return it.
-        if let DataRep::Other(other) = &*self.inner.data_rep.borrow() {
-            // other is an &Rc<MoltAny>
-            if let Ok(out) = other.clone().downcast::<T>() {
-                return Some(out);
-            }
+        let r = self.inner.data_rep.borrow();
+        if let Ok(r) = Ref::filter_map(r, |r| if let DataRep::Other(other) = r {
+            other.downcast_ref::<T>()
+        } else {
+            None
+        }) {
+            return Some(r);
         }
 
         // NEXT, can we parse it as a T?  If so, save it back to
         // the data_rep, and return it.
         let str = self.as_str();
 
-        if let Ok(tval) = str.parse::<T>() {
-            let tval = Rc::new(tval);
-            let out = tval.clone();
-            *self.inner.data_rep.borrow_mut() = DataRep::Other(Rc::new(tval));
-            return Some(out);
-        }
+        let Ok(tval) = str.parse::<T>() else {
+            return None;
+        };
 
-        // NEXT, we couldn't do it.
-        None
+        let tval = Box::new(tval);
+        *self.inner.data_rep.borrow_mut() = DataRep::Other(tval);
+        let r = self.inner.data_rep.borrow();
+        Ref::filter_map(r, |r| if let DataRep::Other(other) = r {
+            other.downcast_ref::<T>()
+        } else {
+            None
+        }).ok()
     }
 
     /// Tries to interpret the `Value` as a value of type `T`, parsing the string
@@ -1076,8 +1081,8 @@ impl Value {
     {
         // FIRST, if we have the desired type, return it.
         if let DataRep::Other(other) = &*self.inner.data_rep.borrow() {
-            // other is an &Rc<MoltAny>
-            if let Ok(out) = other.clone().downcast::<T>() {
+            // other is an &Box<dyn MoltAny>
+            if let Some(out) = other.downcast_ref::<T>() {
                 return Some(*out);
             }
         }
@@ -1086,15 +1091,13 @@ impl Value {
         // the data_rep, and return it.
         let str = self.as_str();
 
-        if let Ok(tval) = str.parse::<T>() {
-            let tval = Rc::new(tval);
-            let out = tval.clone();
-            *self.inner.data_rep.borrow_mut() = DataRep::Other(Rc::new(tval));
-            return Some(*out);
-        }
+        let Ok(tval) = str.parse::<T>() else {
+            return None;
+        };
 
-        // NEXT, we couldn't do it.
-        None
+        let boxed = Box::new(tval);
+        *self.inner.data_rep.borrow_mut() = DataRep::Other(boxed);
+        Some(tval)
     }
 
     /// For use by `expr::expr` in parsing out `Values`.
@@ -1123,18 +1126,8 @@ trait MoltAny: Any + Display + Debug {
 }
 
 impl dyn MoltAny {
-    /// Is this value a value of the desired type?
-    pub fn is<T: 'static>(&self) -> bool {
-        TypeId::of::<T>() == self.type_id()
-    }
-
-    /// Downcast an `Rc<MoltAny>` to an `Rc<T>`
-    fn downcast<T: 'static>(self: Rc<Self>) -> Result<Rc<T>, Rc<Self>> {
-        if self.is::<T>() {
-            unsafe { Ok(Rc::from_raw(Rc::into_raw(self) as _)) }
-        } else {
-            Err(self)
-        }
+    fn downcast_ref<T: 'static>(&self) -> Option<&T> {
+        self.as_any().downcast_ref()
     }
 }
 
@@ -1154,7 +1147,7 @@ impl<T: Any + Display + Debug> MoltAny for T {
 // DataRep enum: a sum type for the different kinds of data_reps.
 
 // The data representation for Values.
-#[derive(Clone, Debug)]
+#[derive(Debug)]
 enum DataRep {
     /// A Boolean
     Bool(bool),
@@ -1180,7 +1173,7 @@ enum DataRep {
     VarName(Rc<VarName>),
 
     /// An external data type
-    Other(Rc<dyn MoltAny>),
+    Other(Box<dyn MoltAny>),
 
     /// The Value has no data rep at present.
     None,

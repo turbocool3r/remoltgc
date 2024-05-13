@@ -1195,8 +1195,8 @@ impl Display for DataRep {
             #[cfg(feature = "float")]
             DataRep::Flt(flt) => Value::fmt_float(f, *flt),
             DataRep::List(list) => write!(f, "{}", list_to_string(list)),
-            DataRep::Script(script) => write!(f, "{:?}", script),
-            DataRep::VarName(var_name) => write!(f, "{:?}", var_name),
+            DataRep::Script(_) => write!(f, "<script>"),
+            DataRep::VarName(_) => write!(f, "<var-name>"),
             DataRep::Other(other) => write!(f, "{}", other),
             DataRep::None => write!(f, ""),
         }

@@ -481,9 +481,7 @@ impl Value {
         // Thus, this is safe: as_str() is the only way to retrieve the string_rep,
         // and it computes the string_rep lazily after which it is immutable.
         let slot = unsafe { &mut *self.inner.string_rep.get() };
-        *slot = Some((self.inner.data_rep.borrow()).to_string().into());
-
-        slot.as_ref().expect("string rep")
+        slot.insert((self.inner.data_rep.borrow()).to_string().into())
     }
 
     /// Tries to return the `Value` as a `bool`, parsing the

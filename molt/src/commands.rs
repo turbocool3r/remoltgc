@@ -757,8 +757,8 @@ pub fn cmd_lappend(interp: &mut Interp, _: ContextID, argv: &[Value]) -> MoltOpt
 
     let var_result = interp.var(&argv[1]);
 
-    let mut list: MoltList = if var_result.is_ok() {
-        var_result.expect("got value").to_list()?
+    let mut list: MoltList = if let Ok(r) = var_result {
+        r.to_list()?
     } else {
         Vec::new()
     };

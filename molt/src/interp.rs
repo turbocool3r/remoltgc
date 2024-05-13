@@ -567,10 +567,12 @@ impl Interp {
             ("throw", commands::cmd_throw),
             ("unset", commands::cmd_unset),
             ("foreach", commands::cmd_foreach),
-            ("string", commands::cmd_string),
             ("for", commands::cmd_for),
             ("if", commands::cmd_if),
             ("while", commands::cmd_while),
+
+            #[cfg(feature = "string-command")]
+            ("string", commands::cmd_string),
 
             #[cfg(feature = "expr")]
             ("expr", commands::cmd_expr),

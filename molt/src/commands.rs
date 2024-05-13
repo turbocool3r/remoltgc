@@ -6,6 +6,7 @@
 use crate::dict::{dict_new, dict_path_insert, dict_path_remove, list_to_dict};
 use crate::interp::Interp;
 use crate::types::*;
+#[cfg(feature = "string-command")]
 use crate::util;
 use crate::*;
 
@@ -1028,10 +1029,12 @@ pub fn cmd_source(interp: &mut Interp, argv: &[Value]) -> MoltOptResult {
 }
 
 /// # string *subcommand* ?*arg*...?
+#[cfg(feature = "string-command")]
 pub fn cmd_string(interp: &mut Interp, argv: &[Value]) -> MoltOptResult {
     interp.call_subcommand(argv, 1, STRING_SUBCOMMANDS)
 }
 
+#[cfg(feature = "string-command")]
 static STRING_SUBCOMMANDS: &[Subcommand] = &[
     Subcommand("cat", cmd_string_cat),
     Subcommand("compare", cmd_string_compare),
@@ -1053,13 +1056,8 @@ static STRING_SUBCOMMANDS: &[Subcommand] = &[
     Subcommand("trimright", cmd_string_trim),
 ];
 
-/// Temporary: stub for string subcommands.
-#[allow(unused)]
-pub fn cmd_string_todo(_interp: &mut Interp, _argv: &[Value]) -> MoltOptResult {
-    molt_err!("TODO")
-}
-
 /// string cat ?*arg* ...?
+#[cfg(feature = "string-command")]
 pub fn cmd_string_cat(_interp: &mut Interp, argv: &[Value]) -> MoltOptResult {
     let mut buff = String::new();
 
@@ -1071,6 +1069,7 @@ pub fn cmd_string_cat(_interp: &mut Interp, argv: &[Value]) -> MoltOptResult {
 }
 
 /// string compare ?-nocase? ?-length length? string1 string2
+#[cfg(feature = "string-command")]
 pub fn cmd_string_compare(_interp: &mut Interp, argv: &[Value]) -> MoltOptResult {
     check_args(2, argv, 4, 7, "?-nocase? ?-length length? string1 string2")?;
 
@@ -1112,6 +1111,7 @@ pub fn cmd_string_compare(_interp: &mut Interp, argv: &[Value]) -> MoltOptResult
 }
 
 /// string equal ?-nocase? ?-length length? string1 string2
+#[cfg(feature = "string-command")]
 pub fn cmd_string_equal(_interp: &mut Interp, argv: &[Value]) -> MoltOptResult {
     check_args(2, argv, 4, 7, "?-nocase? ?-length length? string1 string2")?;
 
@@ -1155,6 +1155,7 @@ pub fn cmd_string_equal(_interp: &mut Interp, argv: &[Value]) -> MoltOptResult {
 }
 
 /// string first *needleString* *haystackString* ?*startIndex*?
+#[cfg(feature = "string-command")]
 pub fn cmd_string_first(_interp: &mut Interp, argv: &[Value]) -> MoltOptResult {
     check_args(2, argv, 4, 5, "needleString haystackString ?startIndex?")?;
 
@@ -1187,6 +1188,7 @@ pub fn cmd_string_first(_interp: &mut Interp, argv: &[Value]) -> MoltOptResult {
 }
 
 /// string last *needleString* *haystackString* ?*lastIndex*?
+#[cfg(feature = "string-command")]
 pub fn cmd_string_last(_interp: &mut Interp, argv: &[Value]) -> MoltOptResult {
     check_args(2, argv, 4, 5, "needleString haystackString ?lastIndex?")?;
 
@@ -1233,6 +1235,7 @@ pub fn cmd_string_last(_interp: &mut Interp, argv: &[Value]) -> MoltOptResult {
 }
 
 /// string length *string*
+#[cfg(feature = "string-command")]
 pub fn cmd_string_length(_interp: &mut Interp, argv: &[Value]) -> MoltOptResult {
     check_args(2, argv, 3, 3, "string")?;
 
@@ -1241,7 +1244,7 @@ pub fn cmd_string_length(_interp: &mut Interp, argv: &[Value]) -> MoltOptResult 
 }
 
 /// string map ?-nocase? *charMap* *string*
-#[cfg(feature = "dict")]
+#[cfg(all(feature = "dict", feature = "string-command"))]
 pub fn cmd_string_map(_interp: &mut Interp, argv: &[Value]) -> MoltOptResult {
     check_args(2, argv, 4, 5, "?-nocase? charMap string")?;
 
@@ -1318,6 +1321,7 @@ pub fn cmd_string_map(_interp: &mut Interp, argv: &[Value]) -> MoltOptResult {
 }
 
 /// string range *string* *first* *last*
+#[cfg(feature = "string-command")]
 pub fn cmd_string_range(_interp: &mut Interp, argv: &[Value]) -> MoltOptResult {
     check_args(2, argv, 5, 5, "string first last")?;
 
@@ -1346,6 +1350,7 @@ pub fn cmd_string_range(_interp: &mut Interp, argv: &[Value]) -> MoltOptResult {
 }
 
 /// string tolower *string*
+#[cfg(feature = "string-command")]
 pub fn cmd_string_tolower(_interp: &mut Interp, argv: &[Value]) -> MoltOptResult {
     check_args(2, argv, 3, 3, "string")?;
 
@@ -1354,6 +1359,7 @@ pub fn cmd_string_tolower(_interp: &mut Interp, argv: &[Value]) -> MoltOptResult
 }
 
 /// string toupper *string*
+#[cfg(feature = "string-command")]
 pub fn cmd_string_toupper(_interp: &mut Interp, argv: &[Value]) -> MoltOptResult {
     check_args(2, argv, 3, 3, "string")?;
 
@@ -1362,6 +1368,7 @@ pub fn cmd_string_toupper(_interp: &mut Interp, argv: &[Value]) -> MoltOptResult
 }
 
 /// string (trim|trimleft|trimright) *string*
+#[cfg(feature = "string-command")]
 pub fn cmd_string_trim(_interp: &mut Interp, argv: &[Value]) -> MoltOptResult {
     check_args(2, argv, 3, 3, "string")?;
 

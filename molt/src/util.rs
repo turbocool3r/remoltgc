@@ -3,7 +3,9 @@
 //! This module contains function for use by molt only.
 
 use crate::tokenizer::Tokenizer;
+#[cfg(feature = "string-command")]
 use crate::types::*;
+#[cfg(feature = "string-command")]
 use core::cmp::Ordering;
 use alloc::string::String;
 
@@ -160,6 +162,7 @@ pub fn read_float(ptr: &mut Tokenizer) -> Option<String> {
 
 /// Compare two strings, up to an optional length, returning -1, 0, or 1 as a
 /// molt result.
+#[cfg(feature = "string-command")]
 pub(crate) fn compare_len(str1: &str, str2: &str, length: Option<MoltInt>) -> Result<MoltInt,Exception> {
     let s1;
     let s2;

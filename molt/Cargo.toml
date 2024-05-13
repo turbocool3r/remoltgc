@@ -18,7 +18,7 @@ indexmap = {version = "1.3.0", default-features = false}
 [features]
 default = [
     "dict", "float", "i64", "error-stack-trace", "internals", "std", "info",
-    "expr", "closure-commands",
+    "expr", "closure-commands", "string-command",
 ]
 dict = []
 float = []
@@ -28,4 +28,5 @@ internals = []
 info = []
 expr = []
 closure-commands = []
+string-command = []
 std = []

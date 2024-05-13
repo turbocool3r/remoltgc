@@ -780,28 +780,29 @@ impl Subcommand {
             }
         }
 
-        let mut names = String::new();
-        names.push_str(ensemble[0].0);
+        let mut msg = String::from("unknown or ambiguous subcommand \"");
+        msg.push_str(sub_name);
+        msg.push_str("\": must be ");
+
+        msg.push_str(ensemble[0].0);
         let last = ensemble.len() - 1;
 
         if ensemble.len() > 1 {
-            names.push_str(", ");
+            msg.push_str(", ");
         }
 
         if ensemble.len() > 2 {
             let vec: Vec<&str> = ensemble[1..last].iter().map(|x| x.0).collect();
-            names.push_str(&vec.join(", "));
+            msg.push_str(&vec.join(", "));
         }
 
         if ensemble.len() > 1 {
-            names.push_str(", or ");
-            names.push_str(ensemble[last].0);
+            msg.push_str(", or ");
+            msg.push_str(ensemble[last].0);
         }
 
         molt_err!(
-            "unknown or ambiguous subcommand \"{}\": must be {}",
-            sub_name,
-            &names
+            msg
         )
     }
 }

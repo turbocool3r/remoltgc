@@ -273,81 +273,6 @@
 //! _context cache_, which is a means of relating mutable data to a particular command or
 //! family of commands.  See below.
 //!
-//! # Commands and the Context Cache
-//!
-//! Most Molt commands require access only to the Molt interpreter in order to do their
-//! work.  Some need mutable or immutable access to command-specific data (which is often
-//! application-specific data).  This is provided by means of the interpreter's
-//! _context cache_:
-//!
-//! * The interpreter is asked for a new `ContextID`, an ID that is unique in that interpreter.
-//!
-//! * The client associates the context ID with a new instance of a context data structure,
-//!   usually a struct.  This data structure is added to the context cache.
-//!
-//!   * This struct may contain the data required by the command(s), or keys allowing it
-//!     to access the data elsewhere.
-//!
-//! * The `ContextID` is provided to the interpreter when adding commands that require that
-//!   context.
-//!
-//! * A command can mutably access its context data when it is executed.
-//!
-//! * The cached data is dropped when the last command referencing a `ContextID` is removed
-//!   from the interpreter.
-//!
-//! This mechanism supports all of the patterns described above.  For example, Molt's
-//! test harness provides a `test` command that defines a single test.  When it executes, it must
-//! increment a number of statistics: the total number of tests, the number of successes, the
-//! number of failures, etc.  This can be implemented as follows:
-//!
-//! ```
-//! use molt::Interp;
-//! use molt::check_args;
-//! use molt::{molt_ok, molt_opt_ok};
-//! use molt::types::*;
-//!
-//! // The context structure to hold the stats
-//! struct Stats {
-//!     num_tests: usize,
-//!     num_passed: usize,
-//!     num_failed: usize,
-//! }
-//!
-//! // Whatever methods the app needs
-//! impl Stats {
-//!     fn new() -> Self {
-//!         Self { num_tests: 0, num_passed: 0, num_failed: 0}
-//!     }
-//! }
-//!
-//! # let _ = dummy();
-//! # fn dummy() -> MoltResult {
-//! // Create the interpreter.
-//! let mut interp = Interp::new();
-//!
-//! // Create the context struct, assigning a context ID
-//! let context_id = interp.save_context(Stats::new());
-//!
-//! // Add the `test` command with the given context.
-//! interp.add_context_command("test", cmd_test, context_id);
-//!
-//! // Try using the new command.  It should increment the `num_passed` statistic.
-//! let val = interp.eval("test ...")?;
-//! assert_eq!(interp.context::<Stats>(context_id).num_passed, 1);
-//! # molt_ok!()
-//! # }
-//!
-//! // A stub test command.  It ignores its arguments, and
-//! // increments the `num_passed` statistic in its context.
-//! fn cmd_test(interp: &mut Interp, context_id: ContextID, argv: &[Value]) -> MoltOptResult {
-//!     // Pretend it passed
-//!     interp.context::<Stats>(context_id).num_passed += 1;
-//!
-//!     molt_opt_ok!()
-//! }
-//! ```
-//!
 //! # Ensemble Commands
 //!
 //! An _ensemble command_ is simply a command with subcommands, like the standard Molt `info`
@@ -454,7 +379,6 @@ use crate::parser::Word;
 use crate::scope::ScopeStack;
 use crate::types::*;
 use crate::value::Value;
-use core::any::Any;
 use alloc::rc::Rc;
 use alloc::borrow::ToOwned as _;
 use alloc::string::String;
@@ -500,12 +424,6 @@ pub struct Interp {
     // Variable Table
     scopes: ScopeStack,
 
-    // Context ID Counter
-    last_context_id: u64,
-
-    // Context Map
-    context_map: IndexMap<ContextID, ContextBox, MoltHasher>,
-
     // Defines the recursion limit for Interp::eval().
     recursion_limit: usize,
 
@@ -520,7 +438,7 @@ pub struct Interp {
 /// A command defined in the interpreter.
 enum Command {
     /// A binary command implemented as a Rust CommandFunc.
-    Native(CommandFunc, ContextID),
+    Native(CommandFunc),
 
     Closure(Box<dyn Fn(&mut Interp, &[Value]) -> Result<Option<Value>, Exception>>),
 
@@ -532,8 +450,8 @@ impl Command {
     /// Execute the command according to its kind.
     fn execute(&self, interp: &mut Interp, argv: &[Value]) -> MoltResult {
         match self {
-            Command::Native(func, context_id) => {
-                Ok(func(interp, *context_id, argv)?.unwrap_or_default())
+            Command::Native(func) => {
+                Ok(func(interp, NULL_CONTEXT, argv)?.unwrap_or_default())
             }
             Command::Closure(func) => Ok(func(interp, argv)?.unwrap_or_default()),
             Command::Proc(proc) => proc.execute(interp, argv),
@@ -543,17 +461,9 @@ impl Command {
     /// Returns a value naming the command type.
     fn cmdtype(&self) -> Value {
         match self {
-            Command::Native(_, _) => Value::from("native"),
+            Command::Native(_) => Value::from("native"),
             Command::Closure(_) => Value::from("closure"),
             Command::Proc(_) => Value::from("proc"),
-        }
-    }
-
-    /// Gets the command's context, or NULL_CONTEXT if none.
-    fn context_id(&self) -> ContextID {
-        match self {
-            Command::Native(_, context_id) => *context_id,
-            _ => NULL_CONTEXT,
         }
     }
 
@@ -573,45 +483,6 @@ impl Command {
 /// function type to be used for all binary Molt commands with minimal hassle to the
 /// client developer.
 const NULL_CONTEXT: ContextID = ContextID(0);
-
-/// A container for a command's context struct, containing the context in a box,
-/// and a reference count.
-///
-/// The reference count is incremented when the context's ID is used with a command,
-/// and decremented when the command is forgotten.  If the reference count is
-/// decremented to zero, the context is removed.
-struct ContextBox {
-    data: Box<dyn Any>,
-    ref_count: usize,
-}
-
-impl ContextBox {
-    /// Creates a new context box for the given data, and sets its reference count to 0.
-    fn new<T: 'static>(data: T) -> Self {
-        Self {
-            data: Box::new(data),
-            ref_count: 0,
-        }
-    }
-
-    /// Increments the context's reference count.
-    fn increment(&mut self) {
-        self.ref_count += 1;
-    }
-
-    /// Decrements the context's reference count.  Returns true if the count is now 0,
-    /// and false otherwise.
-    ///
-    /// Panics if the count is already 0.
-    fn decrement(&mut self) -> bool {
-        assert!(
-            self.ref_count != 0,
-            "attempted to decrement context ref count below zero"
-        );
-        self.ref_count -= 1;
-        self.ref_count == 0
-    }
-}
 
 #[cfg(feature = "std")]
 struct ProfileRecord {
@@ -648,8 +519,6 @@ impl Interp {
         let mut interp = Self {
             recursion_limit: 1000,
             commands: IndexMap::default(),
-            last_context_id: 0,
-            context_map: IndexMap::default(),
             scopes: ScopeStack::new(),
             num_levels: 0,
             #[cfg(feature = "std")]
@@ -1705,23 +1574,8 @@ impl Interp {
     /// use [`add_context_command`](#method.add_context_command) instead.  See the
     /// [module level documentation](index.html) for an overview and examples.
     pub fn add_command(&mut self, name: &str, func: CommandFunc) {
-        self.add_context_command(name, func, NULL_CONTEXT);
-    }
-
-    /// Adds a binary command with related context data to the interpreter.
-    ///
-    /// This is the normal way to add commands requiring application context.  See the
-    /// [module level documentation](index.html) for an overview and examples.
-    pub fn add_context_command(&mut self, name: &str, func: CommandFunc, context_id: ContextID) {
-        if context_id != NULL_CONTEXT {
-            self.context_map
-                .get_mut(&context_id)
-                .expect("unknown context ID")
-                .increment();
-        }
-
         self.commands
-            .insert(name.into(), Rc::new(Command::Native(func, context_id)));
+            .insert(name.into(), Rc::new(Command::Native(func)));
     }
 
     /// Adds a procedure to the interpreter.
@@ -1797,26 +1651,6 @@ impl Interp {
     /// assert!(!interp.has_command("set"));
     /// ```
     pub fn remove_command(&mut self, name: &str) {
-        // FIRST, get the command's context ID, if any.
-        let context_id = self
-            .commands
-            .get(name)
-            .expect("undefined command")
-            .context_id();
-
-        // NEXT, If it has a context ID, decrement its reference count; and if the reference
-        // is zero, remove the context.
-        if context_id != NULL_CONTEXT
-            && self
-                .context_map
-                .get_mut(&context_id)
-                .expect("unknown context ID")
-                .decrement()
-        {
-            self.context_map.remove(&context_id);
-        }
-
-        // FINALLY, remove the command itself.
         self.commands.remove(name);
     }
 
@@ -2001,118 +1835,6 @@ impl Interp {
     /// ```
     pub fn set_recursion_limit(&mut self, limit: usize) {
         self.recursion_limit = limit;
-    }
-
-    //--------------------------------------------------------------------------------------------
-    // Context Cache
-
-    /// Saves the client's context data in the interpreter's context cache,
-    /// returning a generated context ID.  Client commands can retrieve the data
-    /// given the ID.
-    ///
-    /// See the [module level documentation](index.html) for an overview and examples.
-    ///
-    /// # Example
-    ///
-    /// ```
-    /// use molt::types::*;
-    /// use molt::interp::Interp;
-    ///
-    /// let mut interp = Interp::new();
-    /// let data: Vec<String> = Vec::new();
-    /// let id = interp.save_context(data);
-    /// ```
-    pub fn save_context<T: 'static>(&mut self, data: T) -> ContextID {
-        let id = self.context_id();
-        self.context_map.insert(id, ContextBox::new(data));
-        id
-    }
-
-    /// Retrieves mutable client context data given the context ID.
-    ///
-    /// See the [module level documentation](index.html) for an overview and examples.
-    ///
-    /// # Example
-    ///
-    /// ```
-    /// use molt::types::*;
-    /// use molt::interp::Interp;
-    ///
-    /// let mut interp = Interp::new();
-    /// let data: Vec<String> = Vec::new();
-    /// let id = interp.save_context(data);
-    ///
-    /// // Later...
-    /// let data: &mut Vec<String> = interp.context(id);
-    /// data.push("New Value".into());
-    ///
-    /// // Or
-    /// let data = interp.context::<Vec<String>>(id);
-    /// data.push("New Value".into());
-    /// ```
-    ///
-    /// # Panics
-    ///
-    /// This call panics if the context ID is unknown, or if the retrieved data
-    /// has an unexpected type.
-    pub fn context<T: 'static>(&mut self, id: ContextID) -> &mut T {
-        self.context_map
-            .get_mut(&id)
-            .expect("unknown context ID")
-            .data
-            .downcast_mut::<T>()
-            .expect("context type mismatch")
-    }
-
-    /// Generates a unique context ID for command context data.
-    ///
-    /// Normally the client will use [`save_context`](#method.save_context) to
-    /// save the context data and generate the client ID in one operation, rather than
-    /// call this explicitly.
-    ////
-    /// # Example
-    ///
-    /// ```
-    /// use molt::types::*;
-    /// use molt::interp::Interp;
-    ///
-    /// let mut interp = Interp::new();
-    /// let id1 = interp.context_id();
-    /// let id2 = interp.context_id();
-    /// assert_ne!(id1, id2);
-    /// ```
-    pub fn context_id(&mut self) -> ContextID {
-        // TODO: Practically speaking we won't overflow u64; but practically speaking
-        // we should check any.
-        self.last_context_id += 1;
-        ContextID(self.last_context_id)
-    }
-
-    /// Saves a client context value in the interpreter for the given
-    /// context ID.  Client commands can retrieve the data given the context ID.
-    ///
-    /// Normally the client will use [`save_context`](#method.save_context) to
-    /// save the context data and generate the client ID in one operation, rather than
-    /// call this explicitly.
-    ///
-    /// TODO: This method allows the user to generate a context ID and
-    /// put data into the context cache as two separate steps; and to update the
-    /// the data in the context cache for a given ID.  I'm not at all sure that
-    /// either of those things is a good idea.  Waiting to see.
-    ///
-    /// # Example
-    ///
-    /// ```
-    /// use molt::types::*;
-    /// use molt::interp::Interp;
-    ///
-    /// let mut interp = Interp::new();
-    /// let id = interp.context_id();
-    /// let data: Vec<String> = Vec::new();
-    /// interp.set_context(id, data);
-    /// ```
-    pub fn set_context<T: 'static>(&mut self, id: ContextID, data: T) {
-        self.context_map.insert(id, ContextBox::new(data));
     }
 
     //--------------------------------------------------------------------------------------------
@@ -2437,108 +2159,5 @@ mod tests {
                 "too many nested calls to Interp::eval (infinite loop?)"
             ))
         ));
-    }
-
-    //-----------------------------------------------------------------------
-    // Context Cache tests
-
-    #[test]
-    fn context_basic_use() {
-        let mut interp = Interp::new();
-
-        // Save a context object.
-        let id = interp.save_context(String::from("ABC"));
-
-        // Retrieve it.
-        let ctx = interp.context::<String>(id);
-        assert_eq!(*ctx, "ABC");
-        ctx.push_str("DEF");
-
-        let ctx = interp.context::<String>(id);
-        assert_eq!(*ctx, "ABCDEF");
-    }
-
-    #[test]
-    fn context_advanced_use() {
-        let mut interp = Interp::new();
-
-        // Save a context object.
-        let id = interp.context_id();
-        interp.set_context(id, String::from("ABC"));
-
-        // Retrieve it.
-        let ctx = interp.context::<String>(id);
-        assert_eq!(*ctx, "ABC");
-    }
-
-    #[test]
-    #[should_panic]
-    fn context_unknown() {
-        let mut interp = Interp::new();
-
-        // Valid ID Generated, but no context saved.
-        let id = interp.context_id();
-
-        // Try to retrieve it.
-        let _ctx = interp.context::<String>(id);
-
-        // Should panic!
-    }
-
-    #[test]
-    #[should_panic]
-    fn context_wrong_type() {
-        let mut interp = Interp::new();
-
-        // Save a context object.
-        let id = interp.save_context(String::from("ABC"));
-
-        // Try to retrieve it as something else.
-        let _ctx = interp.context::<Vec<String>>(id);
-
-        // Should panic!
-    }
-
-    #[test]
-    #[should_panic]
-    fn context_forgotten_1_command() {
-        let mut interp = Interp::new();
-
-        // Save a context object.
-        let id = interp.save_context(String::from("ABC"));
-
-        // Use it with a command.
-        interp.add_context_command("dummy", dummy_cmd, id);
-
-        // Remove the command.
-        interp.remove_command("dummy");
-
-        // Try to retrieve it; this should panic.
-        let _ctx = interp.context::<String>(id);
-    }
-
-    #[test]
-    #[should_panic(expected = "unknown context ID")]
-    fn context_forgotten_2_commands() {
-        let mut interp = Interp::new();
-
-        // Save a context object.
-        let id = interp.save_context(String::from("ABC"));
-
-        // Use it with a command.
-        interp.add_context_command("dummy", dummy_cmd, id);
-        interp.add_context_command("dummy2", dummy_cmd, id);
-
-        // Remove the command.
-        interp.remove_command("dummy");
-        assert_eq!(interp.context::<String>(id), "ABC");
-        interp.remove_command("dummy2");
-
-        // Try to retrieve it; this should panic.
-        let _ctx = interp.context::<String>(id);
-    }
-
-    fn dummy_cmd(_: &mut Interp, _: ContextID, _: &[Value]) -> MoltOptResult {
-        molt_err!("Not really meant to be called")
     }
 }

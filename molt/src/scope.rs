@@ -311,7 +311,7 @@ impl ScopeStack {
     /// if `name` doesn't name an array variable.
     pub fn array_indices(&self, name: &str) -> MoltList {
         match self.var(self.current(), name) {
-            Some(Var::Array(map)) => map.keys().cloned().map(|x| Value::from(&x)).collect(),
+            Some(Var::Array(map)) => map.keys().cloned().map(Value::from).collect(),
             _ => Vec::new(),
         }
     }

@@ -1517,14 +1517,14 @@ mod tests {
 
     #[test]
     fn from_to_flavor() {
-        // Give a Flavor, get an Rc<Flavor> back.
+        // Give a Flavor, get a Flavor back.
         let myval = Value::from_other(Flavor::SALTY);
         let result = myval.as_other::<Flavor>();
         assert!(result.is_some());
         let out = result.unwrap();
         assert_eq!(*out, Flavor::SALTY);
 
-        // Give a String, get an Rc<Flavor> back.
+        // Give a String, get a Flavor back.
         let myval = Value::from("sweet");
         let result = myval.as_other::<Flavor>();
         assert!(result.is_some());

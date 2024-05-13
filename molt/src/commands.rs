@@ -9,6 +9,7 @@ use crate::types::*;
 use crate::util;
 use crate::*;
 
+use core::fmt::Write as _;
 use alloc::string::String;
 use alloc::vec::Vec;
 
@@ -734,18 +735,25 @@ pub fn cmd_info_vars(interp: &mut Interp, _argv: &[Value]) -> MoltOptResult {
 pub fn cmd_join(_interp: &mut Interp, argv: &[Value]) -> MoltOptResult {
     check_args(1, argv, 2, 3, "list ?joinString?")?;
 
-    let list = &argv[1].as_list()?;
+    let list = argv[1].as_list()?;
 
     let join_string = if argv.len() == 3 {
-        argv[2].to_string()
+        argv[2].as_str()
     } else {
-        " ".to_string()
+        " "
     };
 
-    // TODO: Need to implement a standard join() method for MoltLists.
-    let list: Vec<String> = list.iter().map(|v| v.to_string()).collect();
+    let mut result = String::new();
+    let mut first = true;
+    for part in &*list {
+        if !first {
+            result.push_str(join_string);
+        }
+        first = false;
+        write!(result, "{}", part).unwrap(); // TODO
+    }
 
-    molt_opt_ok!(list.join(&join_string))
+    molt_opt_ok!(result)
 }
 
 /// # lappend *varName* ?*value* ...?

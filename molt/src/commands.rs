@@ -1359,9 +1359,9 @@ pub fn cmd_string_trim(_interp: &mut Interp, _: ContextID, argv: &[Value]) -> Mo
 
     let s = argv[2].as_str();
     let trimmed = match argv[1].as_str() {
-        "trimleft" => s.trim_start(),
-        "trimright" => s.trim_end(),
-        _ => s.trim(),
+        "trimleft" => s.trim_start_matches(util::is_ascii_whitespace),
+        "trimright" => s.trim_end_matches(util::is_ascii_whitespace),
+        _ => s.trim_matches(util::is_ascii_whitespace),
     };
 
     molt_opt_ok!(trimmed.to_string())

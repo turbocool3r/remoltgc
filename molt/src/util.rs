@@ -11,6 +11,13 @@ pub fn is_varname_char(ch: char) -> bool {
     ch.is_ascii_alphanumeric() || ch == '_'
 }
 
+pub fn is_ascii_whitespace(ch: char) -> bool {
+    // For reasons I cannot fathom, is_ascii_whitespace takes &self, unlike
+    // is_whitespace, making it incompatible with trim_matches. This wrapper
+    // function solves this.
+    ch.is_ascii_whitespace()
+}
+
 /// Reads the integer string from the head of the input.  If the function returns `Some`,
 /// the value is the integer string that was read, and the `ptr` points to the following
 /// character. Otherwise the `ptr` will be unchanged.

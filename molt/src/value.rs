@@ -182,6 +182,7 @@ use crate::types::MoltFloat;
 use crate::types::MoltInt;
 use crate::types::MoltList;
 use crate::types::VarName;
+use crate::util;
 use core::any::Any;
 use core::any::TypeId;
 use core::cell::RefCell;
@@ -587,7 +588,7 @@ impl Value {
     /// ```
     pub fn get_bool(arg: &str) -> Result<bool, Exception> {
         let orig = arg;
-        let value: &str = &arg.trim().to_ascii_lowercase();
+        let value: &str = &arg.trim_matches(util::is_ascii_whitespace).to_ascii_lowercase();
         match value {
             "1" | "true" | "yes" | "on" => Ok(true),
             "0" | "false" | "no" | "off" => Ok(false),
@@ -723,7 +724,7 @@ impl Value {
     /// ```
     pub fn get_int(arg: &str) -> Result<MoltInt, Exception> {
         let orig = arg;
-        let mut arg = arg.trim();
+        let mut arg = arg.trim_matches(util::is_ascii_whitespace);
         let mut minus = 1;
 
         if arg.starts_with('+') {
@@ -802,7 +803,7 @@ impl Value {
     /// ```
     #[cfg(feature = "float")]
     pub fn get_float(arg: &str) -> Result<MoltFloat, Exception> {
-        let arg_trim = arg.trim().to_ascii_lowercase();
+        let arg_trim = arg.trim_matches(util::is_ascii_whitespace).to_ascii_lowercase();
 
         match arg_trim.parse::<MoltFloat>() {
             Ok(flt) => Ok(flt),

@@ -29,7 +29,7 @@ extern crate alloc;
 use alloc::{string::ToString as _, borrow::ToOwned as _};
 
 pub use crate::interp::Interp;
-#[cfg(any(test, feature = "std"))]
+#[cfg(all(feature = "closure-commands", any(test, feature = "std")))]
 pub use crate::test_harness::test_harness;
 pub use crate::types::*;
 
@@ -46,7 +46,7 @@ mod tokenizer;
 mod macros;
 mod parser;
 mod scope;
-#[cfg(any(test, feature = "std"))]
+#[cfg(all(feature = "closure-commands", any(test, feature = "std")))]
 pub mod test_harness;
 pub mod types;
 mod util;

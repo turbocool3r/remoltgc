@@ -383,6 +383,7 @@ use alloc::rc::Rc;
 use alloc::borrow::ToOwned as _;
 use alloc::string::String;
 use alloc::vec::Vec;
+#[cfg(feature = "closure-commands")]
 use alloc::boxed::Box;
 use alloc::format;
 use indexmap::IndexMap;
@@ -440,6 +441,7 @@ enum Command {
     /// A binary command implemented as a Rust CommandFunc.
     Native(CommandFunc),
 
+    #[cfg(feature = "closure-commands")]
     Closure(Box<dyn Fn(&mut Interp, &[Value]) -> Result<Option<Value>, Exception>>),
 
     /// A Molt procedure
@@ -453,6 +455,7 @@ impl Command {
             Command::Native(func) => {
                 Ok(func(interp, argv)?.unwrap_or_default())
             }
+            #[cfg(feature = "closure-commands")]
             Command::Closure(func) => Ok(func(interp, argv)?.unwrap_or_default()),
             Command::Proc(proc) => proc.execute(interp, argv),
         }
@@ -462,6 +465,7 @@ impl Command {
     fn cmdtype(&self) -> Value {
         match self {
             Command::Native(_) => Value::from("native"),
+            #[cfg(feature = "closure-commands")]
             Command::Closure(_) => Value::from("closure"),
             Command::Proc(_) => Value::from("proc"),
         }
@@ -1552,6 +1556,7 @@ impl Interp {
     //--------------------------------------------------------------------------------------------
     // Command Definition and Handling
 
+    #[cfg(feature = "closure-commands")]
     pub fn add_command_closure(&mut self, name: &str, func: impl (Fn(&mut Interp, &[Value]) -> MoltOptResult) + 'static) {
         self.commands.insert(name.into(), Rc::new(Command::Closure(Box::new(func))));
     }

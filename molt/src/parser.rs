@@ -48,11 +48,12 @@
 //! the parser but by the command that interprets the argument as a variable name.  This module
 //! provides `parse_varname_literal` for this case; it is usually used via `Value::as_var_name`.
 
-use crate::eval_ptr::EvalPtr;
-use crate::types::Exception;
-use crate::types::VarName;
-use crate::util::is_varname_char;
-use crate::value::Value;
+use crate::{
+    eval_ptr::EvalPtr,
+    types::{Exception, VarName},
+    util::is_varname_char,
+    value::Value,
+};
 
 #[cfg(feature = "internals")]
 use crate::check_args;
@@ -61,9 +62,11 @@ use crate::interp::Interp;
 #[cfg(feature = "internals")]
 use crate::types::MoltOptResult;
 
-use alloc::boxed::Box;
-use alloc::string::{String, ToString as _};
-use alloc::vec::Vec;
+use alloc::{
+    boxed::Box,
+    string::{String, ToString as _},
+    vec::Vec,
+};
 
 /// A compiled script, which can be executed in the context of an interpreter.
 #[derive(Debug, PartialEq)]
@@ -129,7 +132,6 @@ pub(crate) enum Word {
 
     /// String(string): A string literal.  This usually appears only as an element in
     /// a `Tokens` list, e.g., the `a` and `b` in `a[myproc]b`.
-    ///
     String(String),
 }
 

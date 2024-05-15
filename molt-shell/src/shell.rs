@@ -1,9 +1,5 @@
-use remolt::Interp;
-use remolt::MoltList;
-use remolt::Value;
-use rustyline::error::ReadlineError;
-use rustyline::history::MemHistory;
-use rustyline::{Config, Editor};
+use remolt::{Interp, MoltList, Value};
+use rustyline::{error::ReadlineError, history::MemHistory, Config, Editor};
 use std::fs;
 
 /// Invokes an interactive REPL for the given interpreter, using `rustyline` line editing.
@@ -145,7 +141,13 @@ pub fn script<Ctx>(interp: &mut Interp<Ctx>, args: &[String], glob_ctx: &mut Ctx
 ///
 /// * The Molt variable `arg0` will be set to the `arg0` value.
 /// * The Molt variable `argv` will be set to the `argv` array as a Molt list.
-fn execute_script<Ctx>(interp: &mut Interp<Ctx>, script: String, arg0: &str, argv: &[String], ctx: &mut Ctx) {
+fn execute_script<Ctx>(
+    interp: &mut Interp<Ctx>,
+    script: String,
+    arg0: &str,
+    argv: &[String],
+    ctx: &mut Ctx,
+) {
     let argv: MoltList = argv.iter().map(Value::from).collect();
     interp
         .set_scalar("arg0", Value::from(arg0.to_string()))

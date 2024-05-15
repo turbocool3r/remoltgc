@@ -1,12 +1,11 @@
 //! TCL List Parsing and Formatting
 
-use crate::molt_err;
-use crate::tokenizer::Tokenizer;
-use crate::types::*;
-use crate::value::Value;
+use crate::{molt_err, tokenizer::Tokenizer, types::*, value::Value};
 
-use alloc::string::{String, ToString as _};
-use alloc::vec::Vec;
+use alloc::{
+    string::{String, ToString as _},
+    vec::Vec,
+};
 
 //--------------------------------------------------------------------------
 // List Parsing

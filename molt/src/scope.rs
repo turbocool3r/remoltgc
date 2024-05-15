@@ -12,11 +12,11 @@
 //! Molt clients do not interact with this mechanism directly, but via the
 //! `Interp` (or the Molt language itself).
 
-use crate::types::Exception;
-use crate::types::{MoltHasher, MoltList};
-use crate::value::Value;
-use alloc::string::String;
-use alloc::vec::Vec;
+use crate::{
+    types::{Exception, MoltHasher, MoltList},
+    value::Value,
+};
+use alloc::{string::String, vec::Vec};
 use core::fmt::Debug;
 use indexmap::IndexMap;
 

@@ -3,15 +3,9 @@
 //! * Ultimately, the command should probably move to commands.rs.
 //!   But this is convenient for now.
 
-use crate::eval_ptr::EvalPtr;
-use crate::interp::Interp;
-use crate::list;
-use crate::parser::Word;
-use crate::tokenizer::Tokenizer;
-use crate::*;
+use crate::{eval_ptr::EvalPtr, interp::Interp, list, parser::Word, tokenizer::Tokenizer, *};
 
-use alloc::format;
-use alloc::string::String;
+use alloc::{format, string::String};
 
 //------------------------------------------------------------------------------------------------
 // Datum Representation

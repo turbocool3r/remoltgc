@@ -53,24 +53,22 @@
 //! For example, the following snippet uses the Molt `expr` command to evaluate an expression.
 //!
 //! ```
-//! use remolt::Interp;
-//! use remolt::molt_ok;
-//! use remolt::types::*;
+//! use remolt::{molt_ok, types::*, Interp};
 //!
 //! let _ = my_func();
 //!
 //! fn my_func() -> MoltResult {
-//! // FIRST, create the interpreter and add the needed command.
-//! let mut glob_ctx = ();
-//! let mut interp = Interp::new();
+//!     // FIRST, create the interpreter and add the needed command.
+//!     let mut glob_ctx = ();
+//!     let mut interp = Interp::new();
 //!
-//! // NEXT, evaluate a script containing an expression,
-//! // propagating errors back to the caller
-//! let val = interp.eval("expr {2 + 2}", &mut glob_ctx)?;
-//! assert_eq!(val.as_str(), "4");
-//! assert_eq!(val.as_int()?, 4);
+//!     // NEXT, evaluate a script containing an expression,
+//!     // propagating errors back to the caller
+//!     let val = interp.eval("expr {2 + 2}", &mut glob_ctx)?;
+//!     assert_eq!(val.as_str(), "4");
+//!     assert_eq!(val.as_int()?, 4);
 //!
-//! molt_ok!()
+//!     molt_ok!()
 //! }
 //! ```
 //!
@@ -108,9 +106,7 @@
 //! as in the `if` or `while` commands:
 //!
 //! ```
-//! use remolt::Interp;
-//! use remolt::molt_ok;
-//! use remolt::types::*;
+//! use remolt::{molt_ok, types::*, Interp};
 //!
 //! # let _ = dummy();
 //! # fn dummy() -> MoltResult {
@@ -146,10 +142,7 @@
 //! The following example defines a command called `square` that squares an integer value.
 //!
 //! ```
-//! use remolt::Interp;
-//! use remolt::check_args;
-//! use remolt::{molt_opt_ok, molt_ok};
-//! use remolt::types::*;
+//! use remolt::{check_args, molt_ok, molt_opt_ok, types::*, Interp};
 //!
 //! # let _ = dummy();
 //! # fn dummy() -> MoltResult {
@@ -226,20 +219,17 @@
 //! for example, returns the assigned or retrieved value; it is defined like this:
 //!
 //! ```
-//! use remolt::Interp;
-//! use remolt::check_args;
-//! use remolt::molt_ok;
-//! use remolt::types::*;
+//! use remolt::{check_args, molt_ok, types::*, Interp};
 //!
 //! pub fn cmd_set(interp: &mut Interp, argv: &[Value]) -> MoltResult {
-//!    check_args(1, argv, 2, 3, "varName ?newValue?")?;
+//!     check_args(1, argv, 2, 3, "varName ?newValue?")?;
 //!
-//!    if argv.len() == 3 {
-//!        interp.set_var_return(&argv[1], argv[2].clone())
-//!    } else {
-//!        molt_ok!(interp.var(&argv[1])?)
-//!    }
-//!}
+//!     if argv.len() == 3 {
+//!         interp.set_var_return(&argv[1], argv[2].clone())
+//!     } else {
+//!         molt_ok!(interp.var(&argv[1])?)
+//!     }
+//! }
 //! ```
 //!
 //! At times it can be convenient to explicitly access a scalar variable or array element by
@@ -368,27 +358,20 @@
 //! [`Value`]: ../value/index.html
 //! [`Interp`]: struct.Interp.html
 
-use crate::check_args;
-use crate::commands;
 #[cfg(feature = "dict")]
 use crate::dict::dict_new;
 #[cfg(feature = "expr")]
 use crate::expr;
-use crate::molt_err;
-use crate::molt_ok;
-use crate::parser;
-use crate::parser::Script;
-use crate::parser::Word;
-use crate::scope::ScopeStack;
-use crate::types::*;
-use crate::value::Value;
-use alloc::borrow::ToOwned as _;
+use crate::{
+    check_args, commands, molt_err, molt_ok, parser,
+    parser::{Script, Word},
+    scope::ScopeStack,
+    types::*,
+    value::Value,
+};
 #[cfg(feature = "closure-commands")]
 use alloc::boxed::Box;
-use alloc::format;
-use alloc::rc::Rc;
-use alloc::string::String;
-use alloc::vec::Vec;
+use alloc::{borrow::ToOwned as _, format, rc::Rc, string::String, vec::Vec};
 use indexmap::IndexMap;
 
 #[cfg(feature = "std")]
@@ -410,9 +393,7 @@ use std::time::Instant;
 /// Molt commands.
 ///
 /// ```
-/// use remolt::types::*;
-/// use remolt::Interp;
-/// use remolt::molt_ok;
+/// use remolt::{molt_ok, types::*, Interp};
 /// # fn dummy() -> MoltResult {
 /// let mut glob_ctx = ();
 /// let mut interp = Interp::new();
@@ -547,7 +528,6 @@ impl<Ctx> Interp<Ctx> {
     /// # molt_ok!()
     /// # }
     /// ```
-    ///
     pub fn new() -> Self {
         let mut interp = Interp::empty();
 
@@ -654,19 +634,19 @@ impl<Ctx> Interp<Ctx> {
     /// let input = "set a 1";
     ///
     /// match interp.eval(input, &mut glob_ctx) {
-    ///    Ok(val) => {
-    ///        // Computed a Value
-    ///        println!("Value: {}", val);
-    ///    }
-    ///    Err(exception) => {
-    ///        if exception.is_error() {
-    ///            // Got an error; print it out.
-    ///            println!("Error: {}", exception.value());
-    ///        } else {
-    ///            // It's a Return.
-    ///            println!("Value: {}", exception.value());
-    ///        }
-    ///    }
+    ///     Ok(val) => {
+    ///         // Computed a Value
+    ///         println!("Value: {}", val);
+    ///     }
+    ///     Err(exception) => {
+    ///         if exception.is_error() {
+    ///             // Got an error; print it out.
+    ///             println!("Error: {}", exception.value());
+    ///         } else {
+    ///             // It's a Return.
+    ///             println!("Value: {}", exception.value());
+    ///         }
+    ///     }
     /// }
     /// ```
 
@@ -927,8 +907,7 @@ impl<Ctx> Interp<Ctx> {
     ///
     /// # Example
     /// ```
-    /// use remolt::Interp;
-    /// use remolt::types::*;
+    /// use remolt::{types::*, Interp};
     /// # fn dummy() -> Result<String,Exception> {
     /// let mut glob_ctx = ();
     /// let mut interp = Interp::new();
@@ -957,8 +936,7 @@ impl<Ctx> Interp<Ctx> {
     /// # Example
     ///
     /// ```
-    /// use remolt::Interp;
-    /// use remolt::types::*;
+    /// use remolt::{types::*, Interp};
     /// # fn dummy() -> Result<String,Exception> {
     /// let mut glob_ctx = ();
     /// let mut interp = Interp::new();
@@ -987,8 +965,7 @@ impl<Ctx> Interp<Ctx> {
     /// # Example
     ///
     /// ```
-    /// use remolt::Interp;
-    /// use remolt::types::*;
+    /// use remolt::{types::*, Interp};
     /// # fn dummy() -> Result<String,Exception> {
     /// let mut glob_ctx = ();
     /// let mut interp = Interp::new();
@@ -1012,8 +989,7 @@ impl<Ctx> Interp<Ctx> {
     /// # Example
     ///
     /// ```
-    /// use remolt::Interp;
-    /// use remolt::types::*;
+    /// use remolt::{types::*, Interp};
     /// # fn dummy() -> Result<String,Exception> {
     /// let mut interp = Interp::new();
     /// let mut glob_ctx = ();
@@ -1043,9 +1019,7 @@ impl<Ctx> Interp<Ctx> {
     /// # Example
     ///
     /// ```
-    /// use remolt::types::*;
-    /// use remolt::Interp;
-    /// use remolt::molt_ok;
+    /// use remolt::{molt_ok, types::*, Interp};
     /// # fn dummy() -> MoltResult {
     /// let mut glob_ctx = ();
     /// let mut interp = Interp::new();
@@ -1093,19 +1067,17 @@ impl<Ctx> Interp<Ctx> {
     /// # Example
     ///
     /// ```
-    /// use remolt::types::*;
-    /// use remolt::Interp;
-    /// use remolt::molt_ok;
+    /// use remolt::{molt_ok, types::*, Interp};
     /// # fn dummy() -> MoltResult {
     /// let mut interp = Interp::<()>::new();
     ///
     /// // Set the value of the scalar variable "a"
-    /// let scalar = Value::from("a");  // The variable name
+    /// let scalar = Value::from("a"); // The variable name
     /// interp.set_var(&scalar, Value::from("1"))?;
     /// assert_eq!(interp.var(&scalar)?.as_str(), "1");
     ///
     /// // Set the value of the array element "b(1)":
-    /// let element = Value::from("b(1)");  // The variable name
+    /// let element = Value::from("b(1)"); // The variable name
     /// interp.set_var(&element, Value::from("howdy"))?;
     /// assert_eq!(interp.var(&element)?.as_str(), "howdy");
     /// # molt_ok!()
@@ -1131,20 +1103,24 @@ impl<Ctx> Interp<Ctx> {
     /// # Example
     ///
     /// ```
-    /// use remolt::types::*;
-    /// use remolt::Interp;
-    /// use remolt::molt_ok;
+    /// use remolt::{molt_ok, types::*, Interp};
     /// # fn dummy() -> MoltResult {
     /// let mut interp = Interp::<()>::new();
     ///
     /// // Set the value of the scalar variable "a"
-    /// let scalar = Value::from("a");  // The variable name
-    /// assert_eq!(interp.set_var_return(&scalar, Value::from("1"))?.as_str(), "1");
+    /// let scalar = Value::from("a"); // The variable name
+    /// assert_eq!(
+    ///     interp.set_var_return(&scalar, Value::from("1"))?.as_str(),
+    ///     "1"
+    /// );
     ///
     /// // Set the value of the array element "b(1)":
-    /// let element = Value::from("b(1)");  // The variable name
+    /// let element = Value::from("b(1)"); // The variable name
     /// interp.set_var(&element, Value::from("howdy"))?;
-    /// assert_eq!(interp.set_var_return(&element, Value::from("1"))?.as_str(), "1");
+    /// assert_eq!(
+    ///     interp.set_var_return(&element, Value::from("1"))?.as_str(),
+    ///     "1"
+    /// );
     /// # molt_ok!()
     /// # }
     /// ```
@@ -1160,9 +1136,7 @@ impl<Ctx> Interp<Ctx> {
     /// # Example
     ///
     /// ```
-    /// use remolt::types::*;
-    /// use remolt::Interp;
-    /// use remolt::molt_ok;
+    /// use remolt::{molt_ok, types::*, Interp};
     /// # fn dummy() -> MoltResult {
     /// let mut glob_ctx = ();
     /// let mut interp = Interp::new();
@@ -1188,9 +1162,7 @@ impl<Ctx> Interp<Ctx> {
     /// # Example
     ///
     /// ```
-    /// use remolt::types::*;
-    /// use remolt::Interp;
-    /// use remolt::molt_ok;
+    /// use remolt::{molt_ok, types::*, Interp};
     /// # fn dummy() -> MoltResult {
     /// let mut interp = Interp::<()>::new();
     ///
@@ -1212,9 +1184,7 @@ impl<Ctx> Interp<Ctx> {
     /// # Example
     ///
     /// ```
-    /// use remolt::types::*;
-    /// use remolt::Interp;
-    /// use remolt::molt_ok;
+    /// use remolt::{molt_ok, types::*, Interp};
     /// # fn dummy() -> MoltResult {
     /// let mut glob_ctx = ();
     /// let mut interp = Interp::new();
@@ -1240,9 +1210,7 @@ impl<Ctx> Interp<Ctx> {
     /// # Example
     ///
     /// ```
-    /// use remolt::types::*;
-    /// use remolt::Interp;
-    /// use remolt::molt_ok;
+    /// use remolt::{molt_ok, types::*, Interp};
     /// # fn dummy() -> MoltResult {
     /// let mut interp = Interp::<()>::new();
     ///
@@ -1265,9 +1233,7 @@ impl<Ctx> Interp<Ctx> {
     /// # Example
     ///
     /// ```
-    /// use remolt::types::*;
-    /// use remolt::Interp;
-    /// use remolt::molt_ok;
+    /// use remolt::{molt_ok, types::*, Interp};
     /// # fn dummy() -> MoltResult {
     /// let mut interp = Interp::<()>::new();
     ///
@@ -1290,9 +1256,7 @@ impl<Ctx> Interp<Ctx> {
     /// # Example
     ///
     /// ```
-    /// use remolt::types::*;
-    /// use remolt::Interp;
-    /// use remolt::molt_ok;
+    /// use remolt::{molt_ok, types::*, Interp};
     /// # fn dummy() -> MoltResult {
     /// let mut interp = Interp::<()>::new();
     ///
@@ -1301,8 +1265,8 @@ impl<Ctx> Interp<Ctx> {
     /// let elem = Value::from("b(1)");
     ///
     /// interp.unset_var(&scalar); // Unset scalar
-    /// interp.unset_var(&elem);   // Unset array element
-    /// interp.unset_var(&array);  // Unset entire array
+    /// interp.unset_var(&elem); // Unset array element
+    /// interp.unset_var(&array); // Unset entire array
     /// # molt_ok!()
     /// # }
     /// ```
@@ -1323,9 +1287,7 @@ impl<Ctx> Interp<Ctx> {
     /// # Example
     ///
     /// ```
-    /// use remolt::types::*;
-    /// use remolt::Interp;
-    /// use remolt::molt_ok;
+    /// use remolt::{molt_ok, types::*, Interp};
     /// # fn dummy() -> MoltResult {
     /// let mut interp = Interp::<()>::new();
     ///
@@ -1345,8 +1307,7 @@ impl<Ctx> Interp<Ctx> {
     /// # Example
     ///
     /// ```
-    /// use remolt::Interp;
-    /// use remolt::types::*;
+    /// use remolt::{types::*, Interp};
     ///
     /// # let mut interp = Interp::<()>::new();
     /// for name in interp.vars_in_scope() {
@@ -1363,8 +1324,7 @@ impl<Ctx> Interp<Ctx> {
     /// # Example
     ///
     /// ```
-    /// use remolt::Interp;
-    /// use remolt::types::*;
+    /// use remolt::{types::*, Interp};
     ///
     /// # let mut interp = Interp::<()>::new();
     /// for name in interp.vars_in_global_scope() {
@@ -1383,8 +1343,7 @@ impl<Ctx> Interp<Ctx> {
     /// # Example
     ///
     /// ```
-    /// use remolt::Interp;
-    /// use remolt::types::*;
+    /// use remolt::{types::*, Interp};
     ///
     /// # let mut interp = Interp::<()>::new();
     /// for name in interp.vars_in_local_scope() {
@@ -1472,8 +1431,7 @@ impl<Ctx> Interp<Ctx> {
     /// # Example
     ///
     /// ```
-    /// use remolt::Interp;
-    /// use remolt::types::*;
+    /// use remolt::{types::*, Interp};
     ///
     /// # let mut interp = Interp::<()>::new();
     /// for txt in interp.array_get("myArray") {
@@ -1502,13 +1460,15 @@ impl<Ctx> Interp<Ctx> {
     /// ```
     ///
     /// ```
-    /// use remolt::Interp;
-    /// use remolt::types::*;
+    /// use remolt::{types::*, Interp};
     /// # use remolt::molt_ok;
     ///
     /// # fn dummy() -> MoltResult {
     /// # let mut interp = Interp::<()>::new();
-    /// interp.array_set("myArray", &vec!["a".into(), "1".into(), "b".into(), "2".into()])?;
+    /// interp.array_set(
+    ///     "myArray",
+    ///     &vec!["a".into(), "1".into(), "b".into(), "2".into()],
+    /// )?;
     /// # molt_ok!()
     /// # }
     /// ```
@@ -1528,8 +1488,7 @@ impl<Ctx> Interp<Ctx> {
     /// # Example
     ///
     /// ```
-    /// use remolt::Interp;
-    /// use remolt::types::*;
+    /// use remolt::{types::*, Interp};
     ///
     /// # let mut interp = Interp::<()>::new();
     /// for name in interp.array_names("myArray") {
@@ -1546,8 +1505,7 @@ impl<Ctx> Interp<Ctx> {
     /// # Example
     ///
     /// ```
-    /// use remolt::Interp;
-    /// use remolt::types::*;
+    /// use remolt::{types::*, Interp};
     ///
     /// # use remolt::molt_ok;
     /// # fn dummy() -> MoltResult {
@@ -1621,9 +1579,7 @@ impl<Ctx> Interp<Ctx> {
     /// # Example
     ///
     /// ```
-    /// use remolt::Interp;
-    /// use remolt::types::*;
-    /// use remolt::molt_ok;
+    /// use remolt::{molt_ok, types::*, Interp};
     /// # fn dummy() -> MoltResult {
     /// let mut glob_ctx = ();
     /// let mut interp = Interp::new();
@@ -1651,13 +1607,11 @@ impl<Ctx> Interp<Ctx> {
     /// # Example
     ///
     /// ```
-    /// use remolt::Interp;
-    /// use remolt::types::*;
-    /// use remolt::molt_ok;
+    /// use remolt::{molt_ok, types::*, Interp};
     ///
     /// let mut interp = Interp::<()>::new();
     ///
-    /// interp.remove_command("set");  // You'll be sorry....
+    /// interp.remove_command("set"); // You'll be sorry....
     ///
     /// assert!(!interp.has_command("set"));
     /// ```
@@ -1670,9 +1624,7 @@ impl<Ctx> Interp<Ctx> {
     /// # Example
     ///
     /// ```
-    /// use remolt::Interp;
-    /// use remolt::types::*;
-    /// use remolt::molt_ok;
+    /// use remolt::{molt_ok, types::*, Interp};
     ///
     /// let mut interp = Interp::<()>::new();
     ///
@@ -1706,9 +1658,7 @@ impl<Ctx> Interp<Ctx> {
     /// # Example
     ///
     /// ```
-    /// use remolt::Interp;
-    /// use remolt::types::*;
-    /// use remolt::molt_ok;
+    /// use remolt::{molt_ok, types::*, Interp};
     ///
     /// let mut interp = Interp::<()>::new();
     ///

@@ -27,10 +27,9 @@
 extern crate alloc;
 use alloc::{borrow::ToOwned as _, string::ToString as _};
 
-pub use crate::interp::Interp;
 #[cfg(all(feature = "closure-commands", any(test, feature = "std")))]
 pub use crate::test_harness::test_harness;
-pub use crate::types::*;
+pub use crate::{interp::Interp, types::*};
 
 mod commands;
 #[cfg(feature = "dict")]

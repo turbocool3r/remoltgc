@@ -12,17 +12,8 @@
 //! See the Molt Book (or the Molt benchmark suite) for how to write
 //! benchmarks and examples of benchmark scripts.
 
-use remolt::check_args;
-use remolt::molt_opt_ok;
-use remolt::Interp;
-use remolt::MoltInt;
-use remolt::MoltOptResult;
-use remolt::Value;
-use std::cell::RefCell;
-use std::env;
-use std::fs;
-use std::path::PathBuf;
-use std::rc::Rc;
+use remolt::{check_args, molt_opt_ok, Interp, MoltInt, MoltOptResult, Value};
+use std::{cell::RefCell, env, fs, path::PathBuf, rc::Rc};
 
 /// Executes the Molt benchmark harness, given the command-line arguments,
 /// in the context of the given interpreter.
@@ -100,7 +91,9 @@ pub fn benchmark<Ctx>(interp: &mut Interp<Ctx>, args: &[String], glob_ctx: &mut 
     interp.add_command("ident", cmd_ident);
     {
         let context = context.clone();
-        interp.add_command_closure("measure", move |interp, argv, _ctx| measure_cmd(interp, &context, argv));
+        interp.add_command_closure("measure", move |interp, argv, _ctx| {
+            measure_cmd(interp, &context, argv)
+        });
     }
     interp.add_command("ok", cmd_ok);
 
@@ -227,7 +220,11 @@ struct Measurement {
 /// # measure *name* *description* *micros*
 ///
 /// Records a benchmark measurement.
-fn measure_cmd<Ctx>(_interp: &mut Interp<Ctx>, ctx: &RefCell<Context>, argv: &[Value]) -> MoltOptResult {
+fn measure_cmd<Ctx>(
+    _interp: &mut Interp<Ctx>,
+    ctx: &RefCell<Context>,
+    argv: &[Value],
+) -> MoltOptResult {
     remolt::check_args(1, argv, 4, 4, "name description nanos")?;
 
     // FIRST, get the arguments

@@ -4,14 +4,11 @@
 
 #[cfg(feature = "dict")]
 use crate::dict::{dict_new, dict_path_insert, dict_path_remove, list_to_dict};
-use crate::interp::Interp;
-use crate::types::*;
 #[cfg(feature = "string-command")]
 use crate::util;
-use crate::*;
+use crate::{interp::Interp, types::*, *};
 
-use alloc::string::String;
-use alloc::vec::Vec;
+use alloc::{string::String, vec::Vec};
 use core::fmt::Write as _;
 
 /// # append *varName* ?*value* ...?
@@ -443,7 +440,6 @@ pub fn cmd_expr<Ctx>(interp: &mut Interp<Ctx>, argv: &[Value], ctx: &mut Ctx) ->
 /// # for *start* *test* *next* *command*
 ///
 /// A standard "for" loop.  start, next, and command are scripts; test is an expression
-///
 pub fn cmd_for<Ctx>(interp: &mut Interp<Ctx>, argv: &[Value], ctx: &mut Ctx) -> MoltOptResult {
     check_args(1, argv, 5, 5, "start test next command")?;
 

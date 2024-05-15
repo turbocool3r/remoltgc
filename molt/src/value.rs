@@ -103,8 +103,7 @@
 //!
 //! ```
 //! use remolt::types::*;
-//! use std::fmt;
-//! use std::str::FromStr;
+//! use std::{fmt, str::FromStr};
 //!
 //! #[derive(Debug, PartialEq, Copy, Clone)]
 //! pub enum Flavor {
@@ -133,8 +132,8 @@
 //!         } else if value == "sweet" {
 //!             Ok(Flavor::SWEET)
 //!         } else {
-//!            // The error message doesn't matter to Molt
-//!            Err("Not a flavor string".to_string())
+//!             // The error message doesn't matter to Molt
+//!             Err("Not a flavor string".to_string())
 //!         }
 //!     }
 //! }
@@ -170,33 +169,30 @@ use crate::dict::{dict_to_string, list_to_dict};
 
 #[cfg(feature = "expr")]
 use crate::expr::Datum;
-use crate::list::get_list;
-use crate::list::list_to_string;
-use crate::parser;
-use crate::parser::Script;
-use crate::types::Exception;
 #[cfg(feature = "dict")]
 use crate::types::MoltDict;
 #[cfg(feature = "float")]
 use crate::types::MoltFloat;
-use crate::types::MoltInt;
-use crate::types::MoltList;
-use crate::types::VarName;
-use crate::util;
-use alloc::borrow::Cow;
-use alloc::borrow::ToOwned as _;
-use alloc::boxed::Box;
-use alloc::rc::Rc;
-use alloc::string::{String, ToString as _};
-use core::any::Any;
-use core::cell::Ref;
-use core::cell::RefCell;
-use core::cell::UnsafeCell;
-use core::fmt::Debug;
-use core::fmt::Display;
-use core::hash::Hash;
-use core::hash::Hasher;
-use core::str::FromStr;
+use crate::{
+    list::{get_list, list_to_string},
+    parser,
+    parser::Script,
+    types::{Exception, MoltInt, MoltList, VarName},
+    util,
+};
+use alloc::{
+    borrow::{Cow, ToOwned as _},
+    boxed::Box,
+    rc::Rc,
+    string::{String, ToString as _},
+};
+use core::{
+    any::Any,
+    cell::{Ref, RefCell, UnsafeCell},
+    fmt::{Debug, Display},
+    hash::{Hash, Hasher},
+    str::FromStr,
+};
 
 //-----------------------------------------------------------------------------
 // Public Data Types
@@ -353,9 +349,10 @@ impl From<MoltDict> for Value {
     /// # Example
     ///
     /// ```
-    /// use remolt::types::Value;
-    /// use remolt::types::MoltDict;
-    /// use remolt::dict::dict_new;
+    /// use remolt::{
+    ///     dict::dict_new,
+    ///     types::{MoltDict, Value},
+    /// };
     ///
     /// let mut dict: MoltDict = dict_new();
     /// dict.insert(Value::from("abc"), Value::from("123"));
@@ -501,8 +498,7 @@ impl Value {
     /// # Example
     ///
     /// ```
-    /// use remolt::types::Value;
-    /// use remolt::types::Exception;
+    /// use remolt::types::{Exception, Value};
     /// # fn dummy() -> Result<bool,Exception> {
     /// // All of the following can be interpreted as booleans.
     /// let value = Value::from(true);
@@ -604,10 +600,8 @@ impl Value {
     /// # Example
     ///
     /// ```
+    /// use remolt::types::{Exception, MoltDict, Value};
     /// use std::rc::Rc;
-    /// use remolt::types::Value;
-    /// use remolt::types::MoltDict;
-    /// use remolt::types::Exception;
     /// # fn dummy() -> Result<(),Exception> {
     ///
     /// let value = Value::from("abc 1234");
@@ -650,9 +644,7 @@ impl Value {
     /// # Example
     ///
     /// ```
-    /// use remolt::types::Value;
-    /// use remolt::types::MoltDict;
-    /// use remolt::types::Exception;
+    /// use remolt::types::{Exception, MoltDict, Value};
     /// # fn dummy() -> Result<String,Exception> {
     ///
     /// let value = Value::from("abc 1234");
@@ -680,9 +672,7 @@ impl Value {
     /// # Example
     ///
     /// ```
-    /// use remolt::types::Value;
-    /// use remolt::types::MoltInt;
-    /// use remolt::types::Exception;
+    /// use remolt::types::{Exception, MoltInt, Value};
     /// # fn dummy() -> Result<MoltInt,Exception> {
     ///
     /// let value = Value::from(123);
@@ -758,9 +748,7 @@ impl Value {
     /// # Example
     ///
     /// ```
-    /// use remolt::types::Value;
-    /// use remolt::types::MoltFloat;
-    /// use remolt::types::Exception;
+    /// use remolt::types::{Exception, MoltFloat, Value};
     /// # fn dummy() -> Result<MoltFloat,Exception> {
     ///
     /// let value = Value::from(12.34);
@@ -839,10 +827,8 @@ impl Value {
     /// # Example
     ///
     /// ```
+    /// use remolt::types::{Exception, MoltList, Value};
     /// use std::rc::Rc;
-    /// use remolt::types::Value;
-    /// use remolt::types::MoltList;
-    /// use remolt::types::Exception;
     /// # fn dummy() -> Result<String,Exception> {
     ///
     /// let value = Value::from("1234 abc");
@@ -895,9 +881,7 @@ impl Value {
     /// # Example
     ///
     /// ```
-    /// use remolt::types::Value;
-    /// use remolt::types::MoltList;
-    /// use remolt::types::Exception;
+    /// use remolt::types::{Exception, MoltList, Value};
     /// # fn dummy() -> Result<String,Exception> {
     ///
     /// let value = Value::from("1234 abc");
@@ -1228,8 +1212,7 @@ mod tests {
     use super::*;
     #[cfg(feature = "dict")]
     use crate::dict::dict_new;
-    use std::fmt;
-    use std::str::FromStr;
+    use std::{fmt, str::FromStr};
 
     #[test]
     fn from_string() {

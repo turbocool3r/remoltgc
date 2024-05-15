@@ -6,8 +6,7 @@
 //! * Skip just past the end of the token using `next`, `skip`, etc.
 //! * Use `token` to retrieve a slice from the mark to the index.
 
-use core::iter::Peekable;
-use core::str::Chars;
+use core::{iter::Peekable, str::Chars};
 
 /// The Tokenizer type.  See the module-level documentation.
 #[derive(Clone, Debug)]

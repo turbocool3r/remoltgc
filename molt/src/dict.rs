@@ -6,16 +6,13 @@
 //! * Warning: when removing items from a dictionary, use `dict_remove`, defined here, as it
 //!   preserves the order.  Using `IndexMap::remove` does not.
 
-use crate::list::list_to_string;
-use crate::molt_err;
-use crate::molt_ok;
-use crate::types::Exception;
-use crate::types::MoltDict;
-use crate::types::MoltList;
-use crate::types::MoltResult;
-use crate::value::Value;
-use alloc::string::String;
-use alloc::vec::Vec;
+use crate::{
+    list::list_to_string,
+    molt_err, molt_ok,
+    types::{Exception, MoltDict, MoltList, MoltResult},
+    value::Value,
+};
+use alloc::{string::String, vec::Vec};
 use indexmap::IndexMap;
 
 /// Create an empty dict.

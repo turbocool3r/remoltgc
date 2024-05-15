@@ -4,3 +4,4 @@ Cargo.lock
 .*
 !.gitignore
 !.github
+!.rustfmt.toml

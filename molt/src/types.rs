@@ -25,13 +25,10 @@
 
 use crate::interp::Interp;
 pub use crate::value::Value;
-use alloc::boxed::Box;
-use alloc::string::String;
 #[cfg(feature = "error-stack-trace")]
 use alloc::vec;
-use alloc::vec::Vec;
-use core::fmt;
-use core::str::FromStr;
+use alloc::{boxed::Box, string::String, vec::Vec};
+use core::{fmt, str::FromStr};
 #[cfg(feature = "dict")]
 use indexmap::IndexMap;
 
@@ -291,10 +288,10 @@ impl Exception {
     /// let input = "throw MYERR \"Error Message\"";
     ///
     /// match interp.eval(input, &mut glob_ctx) {
-    ///    Ok(val) => (),
-    ///    Err(exception) => {
-    ///        assert!(exception.is_error());
-    ///    }
+    ///     Ok(val) => (),
+    ///     Err(exception) => {
+    ///         assert!(exception.is_error());
+    ///     }
     /// }
     /// ```
     pub fn is_error(&self) -> bool {
@@ -340,12 +337,12 @@ impl Exception {
     /// let input = "throw MYERR \"Error Message\"";
     ///
     /// match interp.eval(input, &mut glob_ctx) {
-    ///    Ok(val) => (),
-    ///    Err(exception) => {
-    ///        if let Some(error_data) = exception.error_data() {
-    ///            assert_eq!(error_data.error_code(), "MYERR".into());
-    ///        }
-    ///    }
+    ///     Ok(val) => (),
+    ///     Err(exception) => {
+    ///         if let Some(error_data) = exception.error_data() {
+    ///             assert_eq!(error_data.error_code(), "MYERR".into());
+    ///         }
+    ///     }
     /// }
     /// ```
     ///
@@ -372,17 +369,27 @@ impl Exception {
     /// let input = "throw MYERR \"Error Message\"";
     ///
     /// match interp.eval(input, &mut glob_ctx) {
-    ///    Ok(val) => (),
-    ///    Err(exception) => {
-    ///        match exception.code() {
-    ///            ResultCode::Okay => { println!("Got an okay!") }
-    ///            ResultCode::Error => { println!("Got an error!") }
-    ///            ResultCode::Return => { println!("Got a return!") }
-    ///            ResultCode::Break => { println!("Got a break!")  }
-    ///            ResultCode::Continue => { println!("Got a continue!")  }
-    ///            ResultCode::Other(n) => { println!("Got an other {}", n)  }
-    ///        }
-    ///    }
+    ///     Ok(val) => (),
+    ///     Err(exception) => match exception.code() {
+    ///         ResultCode::Okay => {
+    ///             println!("Got an okay!")
+    ///         }
+    ///         ResultCode::Error => {
+    ///             println!("Got an error!")
+    ///         }
+    ///         ResultCode::Return => {
+    ///             println!("Got a return!")
+    ///         }
+    ///         ResultCode::Break => {
+    ///             println!("Got a break!")
+    ///         }
+    ///         ResultCode::Continue => {
+    ///             println!("Got a continue!")
+    ///         }
+    ///         ResultCode::Other(n) => {
+    ///             println!("Got an other {}", n)
+    ///         }
+    ///     },
     /// }
     /// ```
     pub fn code(&self) -> ResultCode {
@@ -408,10 +415,10 @@ impl Exception {
     /// let input = "throw MYERR \"Error Message\"";
     ///
     /// match interp.eval(input, &mut glob_ctx) {
-    ///    Ok(val) => (),
-    ///    Err(exception) => {
-    ///        assert_eq!(exception.value(), "Error Message".into());
-    ///    }
+    ///     Ok(val) => (),
+    ///     Err(exception) => {
+    ///         assert_eq!(exception.value(), "Error Message".into());
+    ///     }
     /// }
     /// ```
     pub fn value(&self) -> Value {
@@ -451,13 +458,13 @@ impl Exception {
     /// fn my_func(interp: &mut Interp, input: &str, glob_ctx: &mut ()) -> MoltResult {
     ///     // Evaluates the input; on error, adds some error info and rethrows.
     ///     match interp.eval(input, glob_ctx) {
-    ///        Ok(val) => Ok(val),
-    ///        Err(mut exception) => {
-    ///            if exception.is_error() {
-    ///                exception.add_error_info("in rustdoc example");
-    ///            }
-    ///            Err(exception)
-    ///        }
+    ///         Ok(val) => Ok(val),
+    ///         Err(mut exception) => {
+    ///             if exception.is_error() {
+    ///                 exception.add_error_info("in rustdoc example");
+    ///             }
+    ///             Err(exception)
+    ///         }
     ///     }
     /// }
     /// ```

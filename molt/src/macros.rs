@@ -95,8 +95,8 @@ macro_rules! molt_opt_ok {
 ///
 /// // Return a formatted error
 /// fn err2() -> MoltResult {
-///    // ...
-///    molt_err!("invalid value: {}", 17)
+///     // ...
+///     molt_err!("invalid value: {}", 17)
 /// }
 ///
 /// let result = err2();
@@ -149,8 +149,8 @@ macro_rules! molt_err {
 ///
 /// // Return a formatted error
 /// fn throw2() -> MoltResult {
-///    // ...
-///    molt_throw!("MYCODE", "invalid value: {}", 17)
+///     // ...
+///     molt_throw!("MYCODE", "invalid value: {}", 17)
 /// }
 ///
 /// let result = throw2();

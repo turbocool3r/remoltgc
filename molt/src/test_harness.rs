@@ -24,16 +24,9 @@
 
 use alloc::rc::Rc;
 
-use crate::check_args;
-use crate::Interp;
-use crate::MoltOptResult;
-use crate::MoltResult;
-use crate::ResultCode;
-use crate::Value;
+use crate::{check_args, Interp, MoltOptResult, MoltResult, ResultCode, Value};
 use core::cell::RefCell;
-use std::env;
-use std::fs;
-use std::path::PathBuf;
+use std::{env, fs, path::PathBuf};
 
 /// Executes the Molt test harness, given the command-line arguments,
 /// in the context of the given interpreter.

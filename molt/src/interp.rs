@@ -1639,7 +1639,7 @@ impl<Ctx> Interp<Ctx> {
     pub fn rename_command(&mut self, old_name: &str, new_name: &str) {
         if let Some(cmd) = self.commands.get(old_name) {
             let cmd = Rc::clone(cmd);
-            self.commands.remove(old_name);
+            self.commands.swap_remove(old_name);
             self.commands.insert(new_name.into(), cmd);
         }
     }
@@ -1662,7 +1662,7 @@ impl<Ctx> Interp<Ctx> {
     /// assert!(!interp.has_command("set"));
     /// ```
     pub fn remove_command(&mut self, name: &str) {
-        self.commands.remove(name);
+        self.commands.swap_remove(name);
     }
 
     /// Gets a vector of the names of the existing commands.

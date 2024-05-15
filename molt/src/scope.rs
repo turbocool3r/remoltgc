@@ -227,10 +227,10 @@ impl ScopeStack {
         // NEXT, remove the variable at this level.
         if array_only {
             if let Some(Var::Array(_)) = self.stack[level].map.get(name) {
-                self.stack[level].map.remove(name);
+                self.stack[level].map.swap_remove(name);
             }
         } else {
-            self.stack[level].map.remove(name);
+            self.stack[level].map.swap_remove(name);
         }
     }
 
@@ -346,7 +346,7 @@ impl ScopeStack {
     /// variable.
     pub fn unset_element(&mut self, name: &str, index: &str) {
         if let Some(Var::Array(map)) = self.var_mut(self.current(), name) {
-            map.remove(index);
+            map.swap_remove(index);
         }
     }
 

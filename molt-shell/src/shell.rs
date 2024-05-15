@@ -2,7 +2,8 @@ use remolt::Interp;
 use remolt::MoltList;
 use remolt::Value;
 use rustyline::error::ReadlineError;
-use rustyline::Editor;
+use rustyline::history::MemHistory;
+use rustyline::{Config, Editor};
 use std::fs;
 
 /// Invokes an interactive REPL for the given interpreter, using `rustyline` line editing.
@@ -33,7 +34,8 @@ use std::fs;
 /// remolt_shell::repl(&mut interp, &mut glob_ctx);
 /// ```
 pub fn repl<Ctx>(interp: &mut Interp<Ctx>, glob_ctx: &mut Ctx) {
-    let mut rl = Editor::<()>::new();
+    let mut rl = Editor::<(), MemHistory>::with_history(Config::default(), MemHistory::new())
+        .expect("failed to init rustyline");
 
     loop {
         let readline = if let Ok(pscript) = interp.scalar("tcl_prompt1") {
@@ -54,7 +56,9 @@ pub fn repl<Ctx>(interp: &mut Interp<Ctx>, glob_ctx: &mut Ctx) {
                 if !line.is_empty() {
                     match interp.eval(line, glob_ctx) {
                         Ok(value) => {
-                            rl.add_history_entry(line);
+                            if let Err(e) = rl.add_history_entry(line) {
+                                eprintln!("History error: {e}");
+                            }
 
                             // Don't output empty values.
                             if !value.as_str().is_empty() {

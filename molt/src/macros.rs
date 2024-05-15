@@ -42,26 +42,26 @@
 #[macro_export]
 macro_rules! molt_ok {
     () => (
-        Ok(Value::empty())
+        ::core::result::Result::Ok($crate::Value::empty())
     );
     ($arg:expr) => (
-        Ok(Value::from($arg))
+        ::core::result::Result::Ok($crate::Value::from($arg))
     );
     ($($arg:tt)*) => (
-        Ok(Value::from($crate::format!($($arg)*)))
+        ::core::result::Result::Ok($crate::Value::from($crate::format!($($arg)*)))
     )
 }
 
 #[macro_export]
 macro_rules! molt_opt_ok {
     () => (
-        Ok(None)
+        ::core::result::Result::Ok(::core::option::Option::None)
     );
     ($arg:expr) => (
-        Ok(Some(Value::from($arg)))
+        ::core::result::Result::Ok(::core::option::Option::Some($crate::Value::from($arg)))
     );
     ($($arg:tt)*) => (
-        Ok(Some(Value::from($crate::format!($($arg)*))))
+        ::core::result::Result::Ok(::core::option::Option::Some($crate::Value::from($crate::format!($($arg)*))))
     )
 }
 
@@ -109,10 +109,10 @@ macro_rules! molt_opt_ok {
 #[macro_export]
 macro_rules! molt_err {
     ($arg:expr) => (
-        Err(Exception::molt_err(Value::from($arg)))
+        ::core::result::Result::Err($crate::Exception::molt_err($crate::Value::from($arg)))
     );
     ($($arg:tt)*) => (
-        Err(Exception::molt_err(Value::from($crate::format!($($arg)*))))
+        ::core::result::Result::Err($crate::Exception::molt_err($crate::Value::from($crate::format!($($arg)*))))
     )
 }
 
@@ -164,10 +164,10 @@ macro_rules! molt_err {
 #[macro_export]
 macro_rules! molt_throw {
     ($code:expr, $msg:expr) => (
-        Err(Exception::molt_err2(Value::from($code), Value::from($msg)))
+        ::core::result::Result::Err($crate::Exception::molt_err2($crate::Value::from($code), $crate::Value::from($msg)))
     );
     ($code:expr, $($arg:tt)*) => (
-        Err(Exception::molt_err2(Value::from($code), Value::from($crate::format!($($arg)*))))
+        ::core::result::Result::Err($crate::Exception::molt_err2($crate::Value::from($code), $crate::Value::from($crate::format!($($arg)*))))
     )
 }
 

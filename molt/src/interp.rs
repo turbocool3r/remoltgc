@@ -36,7 +36,7 @@
 //!
 //! ```
 //! use remolt::Interp;
-//! let mut interp = Interp::new();
+//! let mut interp = Interp::<()>::new();
 //!
 //! // add commands, evaluate scripts, etc.
 //! ```
@@ -61,11 +61,12 @@
 //!
 //! fn my_func() -> MoltResult {
 //! // FIRST, create the interpreter and add the needed command.
+//! let mut glob_ctx = ();
 //! let mut interp = Interp::new();
 //!
 //! // NEXT, evaluate a script containing an expression,
 //! // propagating errors back to the caller
-//! let val = interp.eval("expr {2 + 2}")?;
+//! let val = interp.eval("expr {2 + 2}", &mut glob_ctx)?;
 //! assert_eq!(val.as_str(), "4");
 //! assert_eq!(val.as_int()?, 4);
 //!
@@ -114,6 +115,7 @@
 //! # let _ = dummy();
 //! # fn dummy() -> MoltResult {
 //! // FIRST, create the interpreter
+//! let mut glob_ctx = ();
 //! let mut interp = Interp::new();
 //!
 //! // NEXT, get an expression as a Value.  In a command body it would
@@ -121,7 +123,7 @@
 //! let expr = Value::from("1 < 2");
 //!
 //! // NEXT, evaluate it!
-//! assert!(interp.expr_bool(&expr)?);
+//! assert!(interp.expr_bool(&expr, &mut glob_ctx)?);
 //! # molt_ok!()
 //! # }
 //! ```
@@ -152,17 +154,18 @@
 //! # let _ = dummy();
 //! # fn dummy() -> MoltResult {
 //! // FIRST, create the interpreter and add the needed command.
+//! let mut glob_ctx = ();
 //! let mut interp = Interp::new();
 //! interp.add_command("square", cmd_square);
 //!
 //! // NEXT, try using the new command.
-//! let val = interp.eval("square 5")?;
+//! let val = interp.eval("square 5", &mut glob_ctx)?;
 //! assert_eq!(val.as_str(), "25");
 //! # molt_ok!()
 //! # }
 //!
 //! // The command: square intValue
-//! fn cmd_square(_: &mut Interp, argv: &[Value]) -> MoltOptResult {
+//! fn cmd_square(_: &mut Interp, argv: &[Value], _ctx: &mut ()) -> MoltOptResult {
 //!     // FIRST, check the number of arguments.  Returns an appropriate error
 //!     // for the wrong number of arguments.
 //!     check_args(1, argv, 2, 2, "intValue")?;
@@ -379,13 +382,13 @@ use crate::parser::Word;
 use crate::scope::ScopeStack;
 use crate::types::*;
 use crate::value::Value;
-use alloc::rc::Rc;
 use alloc::borrow::ToOwned as _;
-use alloc::string::String;
-use alloc::vec::Vec;
 #[cfg(feature = "closure-commands")]
 use alloc::boxed::Box;
 use alloc::format;
+use alloc::rc::Rc;
+use alloc::string::String;
+use alloc::vec::Vec;
 use indexmap::IndexMap;
 
 #[cfg(feature = "std")]
@@ -411,16 +414,17 @@ use std::time::Instant;
 /// use remolt::Interp;
 /// use remolt::molt_ok;
 /// # fn dummy() -> MoltResult {
+/// let mut glob_ctx = ();
 /// let mut interp = Interp::new();
-/// let four = interp.eval("expr {2 + 2}")?;
+/// let four = interp.eval("expr {2 + 2}", &mut glob_ctx)?;
 /// assert_eq!(four, Value::from(4));
 /// # molt_ok!()
 /// # }
 /// ```
 #[derive(Default)]
-pub struct Interp {
+pub struct Interp<Ctx = ()> {
     // Command Table
-    commands: IndexMap<String, Rc<Command>, MoltHasher>,
+    commands: IndexMap<String, Rc<Command<Ctx>>, MoltHasher>,
 
     // Variable Table
     scopes: ScopeStack,
@@ -437,27 +441,25 @@ pub struct Interp {
 }
 
 /// A command defined in the interpreter.
-enum Command {
+enum Command<Ctx> {
     /// A binary command implemented as a Rust CommandFunc.
-    Native(CommandFunc),
+    Native(CommandFunc<Ctx>),
 
     #[cfg(feature = "closure-commands")]
-    Closure(Box<dyn Fn(&mut Interp, &[Value]) -> Result<Option<Value>, Exception>>),
+    Closure(CommandClosure<Ctx>),
 
     /// A Molt procedure
     Proc(Procedure),
 }
 
-impl Command {
+impl<Ctx> Command<Ctx> {
     /// Execute the command according to its kind.
-    fn execute(&self, interp: &mut Interp, argv: &[Value]) -> MoltResult {
+    fn execute(&self, interp: &mut Interp<Ctx>, argv: &[Value], ctx: &mut Ctx) -> MoltResult {
         match self {
-            Command::Native(func) => {
-                Ok(func(interp, argv)?.unwrap_or_default())
-            }
+            Command::Native(func) => Ok(func(interp, argv, ctx)?.unwrap_or_default()),
             #[cfg(feature = "closure-commands")]
-            Command::Closure(func) => Ok(func(interp, argv)?.unwrap_or_default()),
-            Command::Proc(proc) => proc.execute(interp, argv),
+            Command::Closure(func) => Ok(func(interp, argv, ctx)?.unwrap_or_default()),
+            Command::Proc(proc) => proc.execute(interp, argv, ctx),
         }
     }
 
@@ -492,7 +494,7 @@ impl ProfileRecord {
 
 // NOTE: The order of methods in the generated RustDoc depends on the order in this block.
 // Consequently, methods are ordered pedagogically.
-impl Interp {
+impl<Ctx> Interp<Ctx> {
     //--------------------------------------------------------------------------------------------
     // Constructors
 
@@ -504,7 +506,7 @@ impl Interp {
     ///
     /// ```
     /// # use remolt::interp::Interp;
-    /// let mut interp = Interp::empty();
+    /// let mut interp = Interp::<()>::empty();
     /// assert!(interp.command_names().is_empty());
     /// ```
 
@@ -518,7 +520,10 @@ impl Interp {
             profile_map: IndexMap::default(),
         };
 
-        interp.set_scalar("errorInfo", Value::empty()).map_err(|_| ()).unwrap();
+        interp
+            .set_scalar("errorInfo", Value::empty())
+            .map_err(|_| ())
+            .unwrap();
         interp
     }
 
@@ -535,8 +540,9 @@ impl Interp {
     /// # use remolt::Interp;
     /// # use remolt::molt_ok;
     /// # fn dummy() -> MoltResult {
+    /// let mut glob_ctx = ();
     /// let mut interp = Interp::new();
-    /// let four = interp.eval("expr {2 + 2}")?;
+    /// let four = interp.eval("expr {2 + 2}", &mut glob_ctx)?;
     /// assert_eq!(four, Value::from(4));
     /// # molt_ok!()
     /// # }
@@ -545,7 +551,7 @@ impl Interp {
     pub fn new() -> Self {
         let mut interp = Interp::empty();
 
-        static NEW_COMMANDS: &[(&str, CommandFunc)] = &[
+        let new_commands: &[(&'static str, CommandFunc<Ctx>)] = &[
             ("append", commands::cmd_append),
             ("break", commands::cmd_break),
             ("catch", commands::cmd_catch),
@@ -570,18 +576,14 @@ impl Interp {
             ("for", commands::cmd_for),
             ("if", commands::cmd_if),
             ("while", commands::cmd_while),
-
             #[cfg(feature = "string-command")]
             ("string", commands::cmd_string),
-
             #[cfg(feature = "expr")]
             ("expr", commands::cmd_expr),
-
             #[cfg(feature = "dict")]
             ("dict", commands::cmd_dict),
             #[cfg(feature = "info")]
             ("info", commands::cmd_info),
-
             #[cfg(feature = "std")]
             ("puts", commands::cmd_puts),
             #[cfg(feature = "std")]
@@ -590,7 +592,6 @@ impl Interp {
             ("source", commands::cmd_source),
             #[cfg(feature = "std")]
             ("exit", commands::cmd_exit),
-
             #[cfg(feature = "internals")]
             ("parse", parser::cmd_parse),
             #[cfg(all(feature = "std", feature = "internals"))]
@@ -599,7 +600,7 @@ impl Interp {
             ("pclear", commands::cmd_pclear),
         ];
 
-        for &(name, func) in NEW_COMMANDS {
+        for &(name, func) in new_commands {
             interp.add_command(name, func);
         }
 
@@ -647,11 +648,12 @@ impl Interp {
     /// # use remolt::types::*;
     /// # use remolt::Interp;
     ///
+    /// let mut glob_ctx = ();
     /// let mut interp = Interp::new();
     ///
     /// let input = "set a 1";
     ///
-    /// match interp.eval(input) {
+    /// match interp.eval(input, &mut glob_ctx) {
     ///    Ok(val) => {
     ///        // Computed a Value
     ///        println!("Value: {}", val);
@@ -668,9 +670,9 @@ impl Interp {
     /// }
     /// ```
 
-    pub fn eval(&mut self, script: &str) -> MoltResult {
+    pub fn eval(&mut self, script: &str, ctx: &mut Ctx) -> MoltResult {
         let value = Value::from(script.to_owned());
-        self.eval_value(&value)
+        self.eval_value(&value, ctx)
     }
 
     /// Evaluates the string value of a [`Value`] as a script.  Returns the `Value`
@@ -685,7 +687,7 @@ impl Interp {
     /// times.
     ///
     /// [`Value`]: ../value/index.html
-    pub fn eval_value(&mut self, value: &Value) -> MoltResult {
+    pub fn eval_value(&mut self, value: &Value, ctx: &mut Ctx) -> MoltResult {
         // TODO: Could probably do better, here.  If the value is already a list, for
         // example, can maybe evaluate it as a command without using as_script().
         // Tricky, though.  Don't want to have to parse it as a list.  Need a quick way
@@ -700,7 +702,7 @@ impl Interp {
         }
 
         // NEXT, evaluate the script and translate the result to Ok or Error
-        let mut result = self.eval_script(&*value.as_script()?);
+        let mut result = self.eval_script(&*value.as_script()?, ctx);
 
         // NEXT, decrement the number of nesting levels.
         self.num_levels -= 1;
@@ -748,11 +750,11 @@ impl Interp {
 
     /// Evaluates a parsed Script, producing a normal MoltResult.
     /// Also used by expr.rs.
-    pub(crate) fn eval_script(&mut self, script: &Script) -> MoltResult {
+    pub(crate) fn eval_script(&mut self, script: &Script, ctx: &mut Ctx) -> MoltResult {
         let mut result_value = None;
 
         for word_vec in script.commands() {
-            let words = self.eval_word_vec(word_vec.words())?;
+            let words = self.eval_word_vec(word_vec.words(), ctx)?;
 
             if words.is_empty() {
                 break;
@@ -760,12 +762,13 @@ impl Interp {
 
             let name = words[0].as_str();
 
-            let cmd = self.commands.get(name)
-                .ok_or_else(|| Exception::molt_err(Value::from(format!("invalid command name \"{}\"", name))))?;
+            let cmd = self.commands.get(name).ok_or_else(|| {
+                Exception::molt_err(Value::from(format!("invalid command name \"{}\"", name)))
+            })?;
 
             // let start = Instant::now();
             let cmd = Rc::clone(cmd);
-            let result = cmd.execute(self, words.as_slice());
+            let result = cmd.execute(self, words.as_slice(), ctx);
             // self.profile_save(&format!("cmd.execute({})", name), start);
 
             match result {
@@ -784,10 +787,8 @@ impl Interp {
                         exception.add_error_info("    while executing");
                     } else if cmd.is_proc() {
                         exception.add_error_info("    invoked from within");
-                        exception.add_error_info(&format!(
-                                "    (procedure \"{}\" line TODO)",
-                                name
-                                ));
+                        exception
+                            .add_error_info(&format!("    (procedure \"{}\" line TODO)", name));
                     } else {
                         return Err(exception);
                     }
@@ -795,7 +796,8 @@ impl Interp {
                     // TODO: Add command.  In standard TCL, this is the text of the command
                     // before interpolation; at present, we don't have that info in a
                     // convenient form.  For now, just convert the final words to a string.
-                    exception.add_error_info(&format!("\"{}\"", &crate::list::list_to_string(&words)));
+                    exception
+                        .add_error_info(&format!("\"{}\"", &crate::list::list_to_string(&words)));
                     return Err(exception);
                 }
                 Err(e) => return Err(e),
@@ -807,17 +809,17 @@ impl Interp {
 
     /// Evaluates a WordVec, producing a list of Values.  The expansion operator is handled
     /// as a special case.
-    fn eval_word_vec(&mut self, words: &[Word]) -> Result<MoltList, Exception> {
+    fn eval_word_vec(&mut self, words: &[Word], ctx: &mut Ctx) -> Result<MoltList, Exception> {
         let mut list: MoltList = Vec::new();
 
         for word in words {
             if let Word::Expand(word_to_expand) = word {
-                let value = self.eval_word(word_to_expand)?;
+                let value = self.eval_word(word_to_expand, ctx)?;
                 for val in &*value.as_list()? {
                     list.push(val.clone());
                 }
             } else {
-                list.push(self.eval_word(word)?);
+                list.push(self.eval_word(word, ctx)?);
             }
         }
 
@@ -825,17 +827,17 @@ impl Interp {
     }
 
     /// Evaluates a single word, producing a value.  This is also used by expr.rs.
-    pub(crate) fn eval_word(&mut self, word: &Word) -> MoltResult {
+    pub(crate) fn eval_word(&mut self, word: &Word, ctx: &mut Ctx) -> MoltResult {
         match word {
             Word::Value(val) => Ok(val.clone()),
             Word::VarRef(name) => self.scalar(name),
             Word::ArrayRef(name, index_word) => {
-                let index = self.eval_word(index_word)?;
+                let index = self.eval_word(index_word, ctx)?;
                 self.element(name, index.as_str())
             }
-            Word::Script(script) => self.eval_script(script),
+            Word::Script(script) => self.eval_script(script, ctx),
             Word::Tokens(tokens) => {
-                let tlist = self.eval_word_vec(tokens)?;
+                let tlist = self.eval_word_vec(tokens, ctx)?;
                 let string: String = tlist.iter().map(|i| i.as_str()).collect();
                 Ok(Value::from(string))
             }
@@ -910,7 +912,7 @@ impl Interp {
     /// ```
     /// # use remolt::types::*;
     /// # use remolt::interp::Interp;
-    /// let mut interp = Interp::new();
+    /// let mut interp = Interp::<()>::new();
     /// assert!(interp.complete("set a [expr {1+1}]"));
     /// assert!(!interp.complete("set a [expr {1+1"));
     /// ```
@@ -928,18 +930,19 @@ impl Interp {
     /// use remolt::Interp;
     /// use remolt::types::*;
     /// # fn dummy() -> Result<String,Exception> {
+    /// let mut glob_ctx = ();
     /// let mut interp = Interp::new();
     /// let expr = Value::from("2 + 2");
-    /// let sum = interp.expr(&expr)?.as_int()?;
+    /// let sum = interp.expr(&expr, &mut glob_ctx)?.as_int()?;
     ///
     /// assert_eq!(sum, 4);
     /// # Ok("dummy".to_string())
     /// # }
     /// ```
     #[cfg(feature = "expr")]
-    pub fn expr(&mut self, expr: &Value) -> MoltResult {
+    pub fn expr(&mut self, expr: &Value, ctx: &mut Ctx) -> MoltResult {
         // Evaluate the expression and set the errorInfo/errorCode.
-        let result = expr::expr(self, expr);
+        let result = expr::expr(self, expr, ctx);
 
         if let Err(exception) = &result {
             self.set_global_error_data(exception.error_data())?;
@@ -957,21 +960,22 @@ impl Interp {
     /// use remolt::Interp;
     /// use remolt::types::*;
     /// # fn dummy() -> Result<String,Exception> {
+    /// let mut glob_ctx = ();
     /// let mut interp = Interp::new();
     ///
     /// let expr = Value::from("1 < 2");
-    /// let flag: bool = interp.expr_bool(&expr)?;
+    /// let flag: bool = interp.expr_bool(&expr, &mut glob_ctx)?;
     ///
     /// assert!(flag);
     /// # Ok("dummy".to_string())
     /// # }
     /// ```
-    pub fn expr_bool(&mut self, expr: &Value) -> Result<bool, Exception> {
+    pub fn expr_bool(&mut self, expr: &Value, ctx: &mut Ctx) -> Result<bool, Exception> {
         cfg_if::cfg_if! {
             if #[cfg(feature = "expr")] {
-                self.expr(expr)?.as_bool()
+                self.expr(expr, ctx)?.as_bool()
             } else {
-                self.eval_value(expr)?.as_bool()
+                self.eval_value(expr, ctx)?.as_bool()
             }
         }
     }
@@ -986,18 +990,19 @@ impl Interp {
     /// use remolt::Interp;
     /// use remolt::types::*;
     /// # fn dummy() -> Result<String,Exception> {
+    /// let mut glob_ctx = ();
     /// let mut interp = Interp::new();
     ///
     /// let expr = Value::from("1 + 2");
-    /// let val: MoltInt = interp.expr_int(&expr)?;
+    /// let val: MoltInt = interp.expr_int(&expr, &mut glob_ctx)?;
     ///
     /// assert_eq!(val, 3);
     /// # Ok("dummy".to_string())
     /// # }
     /// ```
     #[cfg(feature = "expr")]
-    pub fn expr_int(&mut self, expr: &Value) -> Result<MoltInt, Exception> {
-        self.expr(expr)?.as_int()
+    pub fn expr_int(&mut self, expr: &Value, ctx: &mut Ctx) -> Result<MoltInt, Exception> {
+        self.expr(expr, ctx)?.as_int()
     }
 
     /// Evaluates a [Molt expression](https://wduquette.github.io/molt/ref/expr.html)
@@ -1011,17 +1016,18 @@ impl Interp {
     /// use remolt::types::*;
     /// # fn dummy() -> Result<String,Exception> {
     /// let mut interp = Interp::new();
+    /// let mut glob_ctx = ();
     ///
     /// let expr = Value::from("1.1 + 2.2");
-    /// let val: MoltFloat = interp.expr_float(&expr)?;
+    /// let val: MoltFloat = interp.expr_float(&expr, &mut glob_ctx)?;
     ///
     /// assert_eq!(val, 3.3);
     /// # Ok("dummy".to_string())
     /// # }
     /// ```
     #[cfg(all(feature = "float", feature = "expr"))]
-    pub fn expr_float(&mut self, expr: &Value) -> Result<MoltFloat, Exception> {
-        self.expr(expr)?.as_float()
+    pub fn expr_float(&mut self, expr: &Value, ctx: &mut Ctx) -> Result<MoltFloat, Exception> {
+        self.expr(expr, ctx)?.as_float()
     }
 
     //--------------------------------------------------------------------------------------------
@@ -1041,17 +1047,18 @@ impl Interp {
     /// use remolt::Interp;
     /// use remolt::molt_ok;
     /// # fn dummy() -> MoltResult {
+    /// let mut glob_ctx = ();
     /// let mut interp = Interp::new();
     ///
     /// // Set the value of the scalar variable "a" using a script.
-    /// interp.eval("set a 1")?;
+    /// interp.eval("set a 1", &mut glob_ctx)?;
     ///
     /// // The value of the scalar variable "a".
     /// let val = interp.var(&Value::from("a"))?;
     /// assert_eq!(val.as_str(), "1");
     ///
     /// // Set the value of the array element "b(1)" using a script.
-    /// interp.eval("set b(1) Howdy")?;
+    /// interp.eval("set b(1) Howdy", &mut glob_ctx)?;
     ///
     /// // The value of the array element "b(1)":
     /// let val = interp.var(&Value::from("b(1)"))?;
@@ -1090,7 +1097,7 @@ impl Interp {
     /// use remolt::Interp;
     /// use remolt::molt_ok;
     /// # fn dummy() -> MoltResult {
-    /// let mut interp = Interp::new();
+    /// let mut interp = Interp::<()>::new();
     ///
     /// // Set the value of the scalar variable "a"
     /// let scalar = Value::from("a");  // The variable name
@@ -1128,7 +1135,7 @@ impl Interp {
     /// use remolt::Interp;
     /// use remolt::molt_ok;
     /// # fn dummy() -> MoltResult {
-    /// let mut interp = Interp::new();
+    /// let mut interp = Interp::<()>::new();
     ///
     /// // Set the value of the scalar variable "a"
     /// let scalar = Value::from("a");  // The variable name
@@ -1157,10 +1164,11 @@ impl Interp {
     /// use remolt::Interp;
     /// use remolt::molt_ok;
     /// # fn dummy() -> MoltResult {
+    /// let mut glob_ctx = ();
     /// let mut interp = Interp::new();
     ///
     /// // Set the value of the scalar variable "a" using a script.
-    /// interp.eval("set a 1")?;
+    /// interp.eval("set a 1", &mut glob_ctx)?;
     ///
     /// // The value of the scalar variable "a".
     /// let val = interp.scalar("a")?;
@@ -1184,7 +1192,7 @@ impl Interp {
     /// use remolt::Interp;
     /// use remolt::molt_ok;
     /// # fn dummy() -> MoltResult {
-    /// let mut interp = Interp::new();
+    /// let mut interp = Interp::<()>::new();
     ///
     /// // Set the value of the scalar variable "a"
     /// interp.set_scalar("a", Value::from("1"))?;
@@ -1208,10 +1216,11 @@ impl Interp {
     /// use remolt::Interp;
     /// use remolt::molt_ok;
     /// # fn dummy() -> MoltResult {
+    /// let mut glob_ctx = ();
     /// let mut interp = Interp::new();
     ///
     /// // Set the value of the array element variable "a(1)" using a script.
-    /// interp.eval("set a(1) Howdy")?;
+    /// interp.eval("set a(1) Howdy", &mut glob_ctx)?;
     ///
     /// // The value of the array element "a(1)".
     /// let val = interp.element("a", "1")?;
@@ -1235,7 +1244,7 @@ impl Interp {
     /// use remolt::Interp;
     /// use remolt::molt_ok;
     /// # fn dummy() -> MoltResult {
-    /// let mut interp = Interp::new();
+    /// let mut interp = Interp::<()>::new();
     ///
     /// // Set the value of the scalar variable "a"
     /// interp.set_element("b", "1", Value::from("xyz"))?;
@@ -1260,7 +1269,7 @@ impl Interp {
     /// use remolt::Interp;
     /// use remolt::molt_ok;
     /// # fn dummy() -> MoltResult {
-    /// let mut interp = Interp::new();
+    /// let mut interp = Interp::<()>::new();
     ///
     /// interp.set_scalar("a", Value::from("1"))?;
     /// interp.set_element("b", "1", Value::from("2"))?;
@@ -1285,7 +1294,7 @@ impl Interp {
     /// use remolt::Interp;
     /// use remolt::molt_ok;
     /// # fn dummy() -> MoltResult {
-    /// let mut interp = Interp::new();
+    /// let mut interp = Interp::<()>::new();
     ///
     /// let scalar = Value::from("a");
     /// let array = Value::from("b");
@@ -1318,7 +1327,7 @@ impl Interp {
     /// use remolt::Interp;
     /// use remolt::molt_ok;
     /// # fn dummy() -> MoltResult {
-    /// let mut interp = Interp::new();
+    /// let mut interp = Interp::<()>::new();
     ///
     /// interp.set_element("b", "1", Value::from("2"))?;
     ///
@@ -1339,7 +1348,7 @@ impl Interp {
     /// use remolt::Interp;
     /// use remolt::types::*;
     ///
-    /// # let mut interp = Interp::new();
+    /// # let mut interp = Interp::<()>::new();
     /// for name in interp.vars_in_scope() {
     ///     println!("Found variable: {}", name);
     /// }
@@ -1357,7 +1366,7 @@ impl Interp {
     /// use remolt::Interp;
     /// use remolt::types::*;
     ///
-    /// # let mut interp = Interp::new();
+    /// # let mut interp = Interp::<()>::new();
     /// for name in interp.vars_in_global_scope() {
     ///     println!("Found variable: {}", name);
     /// }
@@ -1377,7 +1386,7 @@ impl Interp {
     /// use remolt::Interp;
     /// use remolt::types::*;
     ///
-    /// # let mut interp = Interp::new();
+    /// # let mut interp = Interp::<()>::new();
     /// for name in interp.vars_in_local_scope() {
     ///     println!("Found variable: {}", name);
     /// }
@@ -1444,7 +1453,7 @@ impl Interp {
     /// # use remolt::types::*;
     /// # use remolt::molt_ok;
     /// # fn dummy() -> MoltResult {
-    /// # let mut interp = Interp::new();
+    /// # let mut interp = Interp::<()>::new();
     /// interp.set_scalar("a", Value::from(1))?;
     /// interp.set_element("b", "1", Value::from(2));
     ///
@@ -1466,7 +1475,7 @@ impl Interp {
     /// use remolt::Interp;
     /// use remolt::types::*;
     ///
-    /// # let mut interp = Interp::new();
+    /// # let mut interp = Interp::<()>::new();
     /// for txt in interp.array_get("myArray") {
     ///     println!("Found index or value: {}", txt);
     /// }
@@ -1498,7 +1507,7 @@ impl Interp {
     /// # use remolt::molt_ok;
     ///
     /// # fn dummy() -> MoltResult {
-    /// # let mut interp = Interp::new();
+    /// # let mut interp = Interp::<()>::new();
     /// interp.array_set("myArray", &vec!["a".into(), "1".into(), "b".into(), "2".into()])?;
     /// # molt_ok!()
     /// # }
@@ -1522,7 +1531,7 @@ impl Interp {
     /// use remolt::Interp;
     /// use remolt::types::*;
     ///
-    /// # let mut interp = Interp::new();
+    /// # let mut interp = Interp::<()>::new();
     /// for name in interp.array_names("myArray") {
     ///     println!("Found index : {}", name);
     /// }
@@ -1542,7 +1551,7 @@ impl Interp {
     ///
     /// # use remolt::molt_ok;
     /// # fn dummy() -> MoltResult {
-    /// let mut interp = Interp::new();
+    /// let mut interp = Interp::<()>::new();
     ///
     /// assert_eq!(interp.array_size("a"), 0);
     ///
@@ -1559,8 +1568,13 @@ impl Interp {
     // Command Definition and Handling
 
     #[cfg(feature = "closure-commands")]
-    pub fn add_command_closure(&mut self, name: &str, func: impl (Fn(&mut Interp, &[Value]) -> MoltOptResult) + 'static) {
-        self.commands.insert(name.into(), Rc::new(Command::Closure(Box::new(func))));
+    pub fn add_command_closure(
+        &mut self,
+        name: &str,
+        func: impl (Fn(&mut Self, &[Value], &mut Ctx) -> MoltOptResult) + 'static,
+    ) {
+        self.commands
+            .insert(name.into(), Rc::new(Command::Closure(Box::new(func))));
     }
 
     /// Adds a binary command with no related context to the interpreter.  This is the normal
@@ -1569,7 +1583,7 @@ impl Interp {
     /// If the command needs access to some form of application or context data,
     /// use [`add_context_command`](#method.add_context_command) instead.  See the
     /// [module level documentation](index.html) for an overview and examples.
-    pub fn add_command(&mut self, name: &str, func: CommandFunc) {
+    pub fn add_command(&mut self, name: &str, func: CommandFunc<Ctx>) {
         self.commands
             .insert(name.into(), Rc::new(Command::Native(func)));
     }
@@ -1611,11 +1625,12 @@ impl Interp {
     /// use remolt::types::*;
     /// use remolt::molt_ok;
     /// # fn dummy() -> MoltResult {
+    /// let mut glob_ctx = ();
     /// let mut interp = Interp::new();
     ///
     /// interp.rename_command("expr", "=");
     ///
-    /// let sum = interp.eval("= {1 + 1}")?.as_int()?;
+    /// let sum = interp.eval("= {1 + 1}", &mut glob_ctx)?.as_int()?;
     ///
     /// assert_eq!(sum, 2);
     /// # molt_ok!()
@@ -1640,7 +1655,7 @@ impl Interp {
     /// use remolt::types::*;
     /// use remolt::molt_ok;
     ///
-    /// let mut interp = Interp::new();
+    /// let mut interp = Interp::<()>::new();
     ///
     /// interp.remove_command("set");  // You'll be sorry....
     ///
@@ -1659,7 +1674,7 @@ impl Interp {
     /// use remolt::types::*;
     /// use remolt::molt_ok;
     ///
-    /// let mut interp = Interp::new();
+    /// let mut interp = Interp::<()>::new();
     ///
     /// for name in interp.command_names() {
     ///     println!("Found command: {}", name);
@@ -1695,7 +1710,7 @@ impl Interp {
     /// use remolt::types::*;
     /// use remolt::molt_ok;
     ///
-    /// let mut interp = Interp::new();
+    /// let mut interp = Interp::<()>::new();
     ///
     /// for name in interp.proc_names() {
     ///     println!("Found procedure: {}", name);
@@ -1733,7 +1748,9 @@ impl Interp {
                 let vec: MoltList = proc
                     .parms
                     .iter()
-                    .map(|item| item.as_list().map_err(|_|()).expect("invalid proc parms")[0].clone())
+                    .map(|item| {
+                        item.as_list().map_err(|_| ()).expect("invalid proc parms")[0].clone()
+                    })
                     .collect();
                 return molt_ok!(Value::from(vec));
             }
@@ -1788,11 +1805,12 @@ impl Interp {
         &mut self,
         argv: &[Value],
         subc: usize,
-        subcommands: &[Subcommand],
+        subcommands: &[Subcommand<Ctx>],
+        ctx: &mut Ctx,
     ) -> MoltOptResult {
         check_args(subc, argv, subc + 1, 0, "subcommand ?arg ...?")?;
         let rec = Subcommand::find(subcommands, argv[subc].as_str())?;
-        (rec.1)(self, argv)
+        (rec.1)(self, argv, ctx)
     }
 
     //--------------------------------------------------------------------------------------------
@@ -1807,7 +1825,7 @@ impl Interp {
     /// ```
     /// # use remolt::types::*;
     /// # use remolt::interp::Interp;
-    /// let mut interp = Interp::new();
+    /// let mut interp = Interp::<()>::new();
     /// assert_eq!(interp.recursion_limit(), 1000);
     /// ```
     pub fn recursion_limit(&self) -> usize {
@@ -1824,7 +1842,7 @@ impl Interp {
     /// ```
     /// # use remolt::types::*;
     /// # use remolt::interp::Interp;
-    /// let mut interp = Interp::new();
+    /// let mut interp = Interp::<()>::new();
     /// interp.set_recursion_limit(100);
     /// assert_eq!(interp.recursion_limit(), 100);
     /// ```
@@ -1886,7 +1904,7 @@ struct Procedure {
 }
 
 impl Procedure {
-    fn execute(&self, interp: &mut Interp, argv: &[Value]) -> MoltResult {
+    fn execute<Ctx>(&self, interp: &mut Interp<Ctx>, argv: &[Value], ctx: &mut Ctx) -> MoltResult {
         // FIRST, push the proc's local scope onto the stack.
         interp.push_scope();
 
@@ -1934,7 +1952,7 @@ impl Procedure {
         }
 
         // NEXT, evaluate the proc's body, getting the result.
-        let result = interp.eval_value(&self.body);
+        let result = interp.eval_value(&self.body, ctx);
 
         // NEXT, pop the scope off of the stack; we're done with it.
         interp.pop_scope();
@@ -1978,7 +1996,10 @@ impl Procedure {
                 break;
             }
 
-            let vec = arg.as_list().map_err(|_| ()).expect("error in proc arglist validation!");
+            let vec = arg
+                .as_list()
+                .map_err(|_| ())
+                .expect("error in proc arglist validation!");
 
             if vec.len() == 1 {
                 msg.push_str(vec[0].as_str());
@@ -2000,14 +2021,14 @@ mod tests {
 
     #[test]
     fn test_empty() {
-        let interp = Interp::empty();
+        let interp = Interp::<()>::empty();
         // Interpreter is empty
         assert!(interp.command_names().is_empty());
     }
 
     #[test]
     fn test_new() {
-        let interp = Interp::new();
+        let interp = Interp::<()>::new();
 
         // Interpreter is not empty
         assert!(!interp.command_names().is_empty());
@@ -2018,20 +2039,21 @@ mod tests {
 
     #[test]
     fn test_eval() {
+        let mut glob_ctx = ();
         let mut interp = Interp::new();
 
-        assert_eq!(interp.eval("set a 1"), Ok(Value::from("1")));
+        assert_eq!(interp.eval("set a 1", &mut glob_ctx), Ok(Value::from("1")));
         assert!(ex_match(
-            &interp.eval("error 2"),
+            &interp.eval("error 2", &mut glob_ctx),
             Exception::molt_err(Value::from("2"))
         ));
-        assert_eq!(interp.eval("return 3"), Ok(Value::from("3")));
+        assert_eq!(interp.eval("return 3", &mut glob_ctx), Ok(Value::from("3")));
         assert!(ex_match(
-            &interp.eval("break"),
+            &interp.eval("break", &mut glob_ctx),
             Exception::molt_err(Value::from("invoked \"break\" outside of a loop"))
         ));
         assert!(ex_match(
-            &interp.eval("continue"),
+            &interp.eval("continue", &mut glob_ctx),
             Exception::molt_err(Value::from("invoked \"continue\" outside of a loop"))
         ));
     }
@@ -2049,33 +2071,34 @@ mod tests {
 
     #[test]
     fn test_eval_value() {
+        let mut glob_ctx = ();
         let mut interp = Interp::new();
 
         assert_eq!(
-            interp.eval_value(&Value::from("set a 1")),
+            interp.eval_value(&Value::from("set a 1"), &mut glob_ctx),
             Ok(Value::from("1"))
         );
         assert!(ex_match(
-            &interp.eval_value(&Value::from("error 2")),
+            &interp.eval_value(&Value::from("error 2"), &mut glob_ctx),
             Exception::molt_err(Value::from("2"))
         ));
         assert_eq!(
-            interp.eval_value(&Value::from("return 3")),
+            interp.eval_value(&Value::from("return 3"), &mut glob_ctx),
             Ok(Value::from("3"))
         );
         assert!(ex_match(
-            &interp.eval_value(&Value::from("break")),
+            &interp.eval_value(&Value::from("break"), &mut glob_ctx),
             Exception::molt_err(Value::from("invoked \"break\" outside of a loop"))
         ));
         assert!(ex_match(
-            &interp.eval_value(&Value::from("continue")),
+            &interp.eval_value(&Value::from("continue"), &mut glob_ctx),
             Exception::molt_err(Value::from("invoked \"continue\" outside of a loop"))
         ));
     }
 
     #[test]
     fn test_complete() {
-        let mut interp = Interp::new();
+        let mut interp = Interp::<()>::new();
 
         assert!(interp.complete("abc"));
         assert!(interp.complete("a {bc} [def] \"ghi\" xyz"));
@@ -2087,10 +2110,14 @@ mod tests {
 
     #[test]
     fn test_expr() {
+        let mut glob_ctx = ();
         let mut interp = Interp::new();
-        assert_eq!(interp.expr(&Value::from("1 + 2")), Ok(Value::from(3)));
         assert_eq!(
-            interp.expr(&Value::from("a + b")),
+            interp.expr(&Value::from("1 + 2"), &mut glob_ctx),
+            Ok(Value::from(3))
+        );
+        assert_eq!(
+            interp.expr(&Value::from("a + b"), &mut glob_ctx),
             Err(Exception::molt_err(Value::from(
                 "unknown math function \"a\""
             )))
@@ -2099,11 +2126,15 @@ mod tests {
 
     #[test]
     fn test_expr_bool() {
+        let mut glob_ctx = ();
         let mut interp = Interp::new();
-        assert_eq!(interp.expr_bool(&Value::from("1")), Ok(true));
-        assert_eq!(interp.expr_bool(&Value::from("0")), Ok(false));
+        assert_eq!(interp.expr_bool(&Value::from("1"), &mut glob_ctx), Ok(true));
         assert_eq!(
-            interp.expr_bool(&Value::from("a")),
+            interp.expr_bool(&Value::from("0"), &mut glob_ctx),
+            Ok(false)
+        );
+        assert_eq!(
+            interp.expr_bool(&Value::from("a"), &mut glob_ctx),
             Err(Exception::molt_err(Value::from(
                 "unknown math function \"a\""
             )))
@@ -2112,10 +2143,11 @@ mod tests {
 
     #[test]
     fn test_expr_int() {
+        let mut glob_ctx = ();
         let mut interp = Interp::new();
-        assert_eq!(interp.expr_int(&Value::from("1 + 2")), Ok(3));
+        assert_eq!(interp.expr_int(&Value::from("1 + 2"), &mut glob_ctx), Ok(3));
         assert_eq!(
-            interp.expr_int(&Value::from("a")),
+            interp.expr_int(&Value::from("a"), &mut glob_ctx),
             Err(Exception::molt_err(Value::from(
                 "unknown math function \"a\""
             )))
@@ -2124,15 +2156,16 @@ mod tests {
 
     #[test]
     fn test_expr_float() {
+        let mut glob_ctx = ();
         let mut interp = Interp::new();
         let val = interp
-            .expr_float(&Value::from("1.1 + 2.2"))
+            .expr_float(&Value::from("1.1 + 2.2"), &mut glob_ctx)
             .expect("floating point value");
 
         assert!((val - 3.3).abs() < 0.001);
 
         assert_eq!(
-            interp.expr_float(&Value::from("a")),
+            interp.expr_float(&Value::from("a"), &mut glob_ctx),
             Err(Exception::molt_err(Value::from(
                 "unknown math function \"a\""
             )))
@@ -2141,15 +2174,16 @@ mod tests {
 
     #[test]
     fn test_recursion_limit() {
+        let mut glob_ctx = ();
         let mut interp = Interp::new();
 
         assert_eq!(interp.recursion_limit(), 1000);
         interp.set_recursion_limit(100);
         assert_eq!(interp.recursion_limit(), 100);
 
-        assert!(dbg!(interp.eval("proc myproc {} { myproc }")).is_ok());
+        assert!(dbg!(interp.eval("proc myproc {} { myproc }", &mut glob_ctx)).is_ok());
         assert!(ex_match(
-            &interp.eval("myproc"),
+            &interp.eval("myproc", &mut glob_ctx),
             Exception::molt_err(Value::from(
                 "too many nested calls to Interp::eval (infinite loop?)"
             ))

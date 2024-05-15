@@ -26,14 +26,14 @@
 use crate::interp::Interp;
 pub use crate::value::Value;
 use alloc::boxed::Box;
-#[cfg(feature = "dict")]
-use indexmap::IndexMap;
-use core::fmt;
-use core::str::FromStr;
 use alloc::string::String;
-use alloc::vec::Vec;
 #[cfg(feature = "error-stack-trace")]
 use alloc::vec;
+use alloc::vec::Vec;
+use core::fmt;
+use core::str::FromStr;
+#[cfg(feature = "dict")]
+use indexmap::IndexMap;
 
 // Molt Numeric Types
 
@@ -286,10 +286,11 @@ impl Exception {
     /// # use remolt::types::*;
     /// # use remolt::Interp;
     ///
+    /// let mut glob_ctx = ();
     /// let mut interp = Interp::new();
     /// let input = "throw MYERR \"Error Message\"";
     ///
-    /// match interp.eval(input) {
+    /// match interp.eval(input, &mut glob_ctx) {
     ///    Ok(val) => (),
     ///    Err(exception) => {
     ///        assert!(exception.is_error());
@@ -334,10 +335,11 @@ impl Exception {
     /// # use remolt::types::*;
     /// # use remolt::Interp;
     ///
+    /// let mut glob_ctx = ();
     /// let mut interp = Interp::new();
     /// let input = "throw MYERR \"Error Message\"";
     ///
-    /// match interp.eval(input) {
+    /// match interp.eval(input, &mut glob_ctx) {
     ///    Ok(val) => (),
     ///    Err(exception) => {
     ///        if let Some(error_data) = exception.error_data() {
@@ -365,10 +367,11 @@ impl Exception {
     /// # use remolt::types::*;
     /// # use remolt::Interp;
     ///
+    /// let mut glob_ctx = ();
     /// let mut interp = Interp::new();
     /// let input = "throw MYERR \"Error Message\"";
     ///
-    /// match interp.eval(input) {
+    /// match interp.eval(input, &mut glob_ctx) {
     ///    Ok(val) => (),
     ///    Err(exception) => {
     ///        match exception.code() {
@@ -400,10 +403,11 @@ impl Exception {
     /// # use remolt::types::*;
     /// # use remolt::Interp;
     ///
+    /// let mut glob_ctx = ();
     /// let mut interp = Interp::new();
     /// let input = "throw MYERR \"Error Message\"";
     ///
-    /// match interp.eval(input) {
+    /// match interp.eval(input, &mut glob_ctx) {
     ///    Ok(val) => (),
     ///    Err(exception) => {
     ///        assert_eq!(exception.value(), "Error Message".into());
@@ -439,13 +443,14 @@ impl Exception {
     /// # use remolt::types::*;
     /// # use remolt::Interp;
     ///
+    /// let mut glob_ctx = ();
     /// let mut interp = Interp::new();
     /// let input = "throw MYERR \"Error Message\"";
-    /// assert!(my_func(&mut interp, &input).is_err());
+    /// assert!(my_func(&mut interp, &input, &mut glob_ctx).is_err());
     ///
-    /// fn my_func(interp: &mut Interp, input: &str) -> MoltResult {
+    /// fn my_func(interp: &mut Interp, input: &str, glob_ctx: &mut ()) -> MoltResult {
     ///     // Evaluates the input; on error, adds some error info and rethrows.
-    ///     match interp.eval(input) {
+    ///     match interp.eval(input, glob_ctx) {
     ///        Ok(val) => Ok(val),
     ///        Err(mut exception) => {
     ///            if exception.is_error() {
@@ -744,7 +749,10 @@ impl ErrorData {
 ///
 /// [The Molt Book]: https://wduquette.github.io/molt/
 /// [`interp`]: ../interp/index.html
-pub type CommandFunc = fn(&mut Interp, &[Value]) -> MoltOptResult;
+pub type CommandFunc<Ctx> = fn(&mut Interp<Ctx>, &[Value], &mut Ctx) -> MoltOptResult;
+
+pub type CommandClosure<Ctx> =
+    Box<dyn Fn(&mut Interp<Ctx>, &[Value], &mut Ctx) -> Result<Option<Value>, Exception>>;
 
 /// A Molt command that has subcommands is called an _ensemble_ command.  In Rust code,
 /// the ensemble is defined as an array of `Subcommand` structs, each one mapping from
@@ -756,9 +764,9 @@ pub type CommandFunc = fn(&mut Interp, &[Value]) -> MoltOptResult;
 /// [The Molt Book]: https://wduquette.github.io/molt/
 /// [`interp`]: ../interp/index.html
 /// [`CommandFunc`]: type.CommandFunc.html
-pub struct Subcommand(pub &'static str, pub CommandFunc);
+pub struct Subcommand<Ctx>(pub &'static str, pub CommandFunc<Ctx>);
 
-impl Subcommand {
+impl<Ctx> Subcommand<Ctx> {
     /// Looks up a subcommand of an ensemble command by name in a table,
     /// returning the usual error if it can't be found.  It is up to the
     /// ensemble command to call the returned subcommand with the
@@ -770,10 +778,7 @@ impl Subcommand {
     /// * In standard TCL, subcommand lookups accept any unambiguous prefix of the
     ///   subcommand name, as a convenience for interactive use.  Molt does not, as it
     ///   is confusing when used in scripts.
-    pub fn find<'a>(
-        ensemble: &'a [Subcommand],
-        sub_name: &str,
-    ) -> Result<&'a Subcommand, Exception> {
+    pub fn find<'a>(ensemble: &'a [Self], sub_name: &str) -> Result<&'a Self, Exception> {
         for subcmd in ensemble {
             if subcmd.0 == sub_name {
                 return Ok(subcmd);
@@ -801,9 +806,7 @@ impl Subcommand {
             msg.push_str(ensemble[last].0);
         }
 
-        molt_err!(
-            msg
-        )
+        molt_err!(msg)
     }
 }
 

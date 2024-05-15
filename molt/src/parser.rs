@@ -55,15 +55,15 @@ use crate::util::is_varname_char;
 use crate::value::Value;
 
 #[cfg(feature = "internals")]
-use crate::types::MoltOptResult;
+use crate::check_args;
 #[cfg(feature = "internals")]
 use crate::interp::Interp;
 #[cfg(feature = "internals")]
-use crate::check_args;
+use crate::types::MoltOptResult;
 
+use alloc::boxed::Box;
 use alloc::string::{String, ToString as _};
 use alloc::vec::Vec;
-use alloc::boxed::Box;
 
 /// A compiled script, which can be executed in the context of an interpreter.
 #[derive(Debug, PartialEq)]
@@ -564,7 +564,7 @@ impl Tokens {
 /// A command for parsing an arbitrary script and outputting the parsed form.
 /// This is an undocumented debugging aid.  The output can be greatly improved.
 #[cfg(feature = "internals")]
-pub fn cmd_parse(_interp: &mut Interp, argv: &[Value]) -> MoltOptResult {
+pub fn cmd_parse<Ctx>(_interp: &mut Interp<Ctx>, argv: &[Value], _ctx: &mut Ctx) -> MoltOptResult {
     check_args(1, argv, 2, 2, "script")?;
 
     let script = &argv[1];

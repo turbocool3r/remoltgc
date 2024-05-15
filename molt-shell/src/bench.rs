@@ -45,18 +45,19 @@ use std::rc::Rc;
 /// let args: Vec<String> = env::args().collect();
 ///
 /// // NEXT, create and initialize the interpreter.
+/// let mut ctx = ();
 /// let mut interp = Interp::new();
 ///
 /// // NOTE: commands can be added to the interpreter here.
 ///
 /// // NEXT, evaluate the file, if any.
 /// if args.len() > 1 {
-///     remolt_shell::benchmark(&mut interp, &args[1..]);
+///     remolt_shell::benchmark(&mut interp, &args[1..], &mut ctx);
 /// } else {
 ///     eprintln!("Usage: mybench *filename.tcl");
 /// }
 /// ```
-pub fn benchmark(interp: &mut Interp, args: &[String]) {
+pub fn benchmark<Ctx>(interp: &mut Interp<Ctx>, args: &[String], glob_ctx: &mut Ctx) {
     // FIRST, get the script file name
     if args.is_empty() {
         eprintln!("Missing benchmark script.");
@@ -99,12 +100,12 @@ pub fn benchmark(interp: &mut Interp, args: &[String]) {
     interp.add_command("ident", cmd_ident);
     {
         let context = context.clone();
-        interp.add_command_closure("measure", move |interp, argv| measure_cmd(interp, &context, argv));
+        interp.add_command_closure("measure", move |interp, argv, _ctx| measure_cmd(interp, &context, argv));
     }
     interp.add_command("ok", cmd_ok);
 
     // NEXT, load the benchmark Tcl library
-    if let Err(exception) = interp.eval(include_str!("bench.tcl")) {
+    if let Err(exception) = interp.eval(include_str!("bench.tcl"), glob_ctx) {
         panic!(
             "Error in benchmark Tcl library: {}",
             exception.value().as_str()
@@ -118,7 +119,7 @@ pub fn benchmark(interp: &mut Interp, args: &[String]) {
                 let _ = env::set_current_dir(parent);
             }
 
-            match interp.eval(&script) {
+            match interp.eval(&script, glob_ctx) {
                 Ok(_) => (),
                 Err(exception) => {
                     eprintln!("{}", exception.value());
@@ -226,7 +227,7 @@ struct Measurement {
 /// # measure *name* *description* *micros*
 ///
 /// Records a benchmark measurement.
-fn measure_cmd(_interp: &mut Interp, ctx: &RefCell<Context>, argv: &[Value]) -> MoltOptResult {
+fn measure_cmd<Ctx>(_interp: &mut Interp<Ctx>, ctx: &RefCell<Context>, argv: &[Value]) -> MoltOptResult {
     remolt::check_args(1, argv, 4, 4, "name description nanos")?;
 
     // FIRST, get the arguments
@@ -254,7 +255,7 @@ fn measure_cmd(_interp: &mut Interp, ctx: &RefCell<Context>, argv: &[Value]) -> 
 /// # ident value
 ///
 /// Returns its argument.
-fn cmd_ident(_interp: &mut Interp, argv: &[Value]) -> MoltOptResult {
+fn cmd_ident<Ctx>(_interp: &mut Interp<Ctx>, argv: &[Value], _ctx: &mut Ctx) -> MoltOptResult {
     check_args(1, argv, 2, 2, "value")?;
 
     molt_opt_ok!(argv[1].clone())
@@ -263,6 +264,6 @@ fn cmd_ident(_interp: &mut Interp, argv: &[Value]) -> MoltOptResult {
 /// # ok ...
 ///
 /// Takes any number of arguments, and returns "".
-fn cmd_ok(_interp: &mut Interp, _argv: &[Value]) -> MoltOptResult {
+fn cmd_ok<Ctx>(_interp: &mut Interp<Ctx>, _argv: &[Value], _ctx: &mut Ctx) -> MoltOptResult {
     molt_opt_ok!()
 }

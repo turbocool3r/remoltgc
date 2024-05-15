@@ -69,7 +69,7 @@ use std::path::PathBuf;
 /// ```
 
 #[allow(clippy::result_unit_err)]
-pub fn test_harness(interp: &mut Interp, args: &[String]) -> Result<(), ()> {
+pub fn test_harness(interp: &mut Interp<()>, args: &[String]) -> Result<(), ()> {
     // FIRST, announce who we are.
     println!("Molt {} -- Test Harness", env!("CARGO_PKG_VERSION"));
 
@@ -86,7 +86,7 @@ pub fn test_harness(interp: &mut Interp, args: &[String]) -> Result<(), ()> {
 
     // NEXT, install the test commands into the interpreter.
     let ctxclone = context.clone();
-    interp.add_command_closure("test", move |interp, argv| {
+    interp.add_command_closure("test", move |interp, argv, _ctx| {
         // FIRST, check the minimum command line.
         check_args(1, argv, 4, 0, "name description args...")?;
 
@@ -106,7 +106,7 @@ pub fn test_harness(interp: &mut Interp, args: &[String]) -> Result<(), ()> {
                 let _ = env::set_current_dir(parent);
             }
 
-            if let Err(exception) = interp.eval(&script) {
+            if let Err(exception) = interp.eval(&script, &mut ()) {
                 if exception.code() == ResultCode::Error {
                     eprintln!("{}", exception.value());
                     return Err(());
@@ -225,7 +225,11 @@ impl TestInfo {
 }
 
 // The simple version of the test command.
-fn simple_test(interp: &mut Interp, context: &RefCell<TestContext>, argv: &[Value]) -> MoltOptResult {
+fn simple_test(
+    interp: &mut Interp<()>,
+    context: &RefCell<TestContext>,
+    argv: &[Value],
+) -> MoltOptResult {
     check_args(1, argv, 6, 6, "name description script -ok|-error result")?;
 
     // FIRST, get the test info
@@ -252,7 +256,11 @@ fn simple_test(interp: &mut Interp, context: &RefCell<TestContext>, argv: &[Valu
 }
 
 // The fancier, more flexible version of the test.
-fn fancy_test(interp: &mut Interp, context: &RefCell<TestContext>, argv: &[Value]) -> MoltOptResult {
+fn fancy_test(
+    interp: &mut Interp<()>,
+    context: &RefCell<TestContext>,
+    argv: &[Value],
+) -> MoltOptResult {
     check_args(
         1,
         argv,
@@ -305,14 +313,14 @@ fn fancy_test(interp: &mut Interp, context: &RefCell<TestContext>, argv: &[Value
 }
 
 // Run the actual test and save the result.
-fn run_test(interp: &mut Interp, context: &RefCell<TestContext>, info: &TestInfo) {
+fn run_test(interp: &mut Interp<()>, context: &RefCell<TestContext>, info: &TestInfo) {
     // FIRST, push a variable scope; -setup, -body, and -cleanup will share it.
     interp.push_scope();
 
     // NEXT, execute the parts of the test.
 
     // Setup
-    if let Err(exception) = interp.eval(&info.setup) {
+    if let Err(exception) = interp.eval(&info.setup, &mut ()) {
         if exception.code() == ResultCode::Error {
             info.print_helper_error("-setup", exception.value().as_str());
         }
@@ -323,10 +331,10 @@ fn run_test(interp: &mut Interp, context: &RefCell<TestContext>, info: &TestInfo
 
     // Body
     let body = Value::from(&info.body);
-    let result = interp.eval_value(&body);
+    let result = interp.eval_value(&body, &mut ());
 
     // Cleanup
-    if let Err(exception) = interp.eval(&info.cleanup) {
+    if let Err(exception) = interp.eval(&info.cleanup, &mut ()) {
         if exception.code() == ResultCode::Error {
             info.print_helper_error("-cleanup", exception.value().as_str());
         }

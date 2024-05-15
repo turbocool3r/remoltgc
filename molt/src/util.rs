@@ -5,9 +5,9 @@
 use crate::tokenizer::Tokenizer;
 #[cfg(feature = "string-command")]
 use crate::types::*;
+use alloc::string::String;
 #[cfg(feature = "string-command")]
 use core::cmp::Ordering;
-use alloc::string::String;
 
 pub fn is_varname_char(ch: char) -> bool {
     ch.is_ascii_alphanumeric() || ch == '_'
@@ -163,7 +163,11 @@ pub fn read_float(ptr: &mut Tokenizer) -> Option<String> {
 /// Compare two strings, up to an optional length, returning -1, 0, or 1 as a
 /// molt result.
 #[cfg(feature = "string-command")]
-pub(crate) fn compare_len(str1: &str, str2: &str, length: Option<MoltInt>) -> Result<MoltInt,Exception> {
+pub(crate) fn compare_len(
+    str1: &str,
+    str2: &str,
+    length: Option<MoltInt>,
+) -> Result<MoltInt, Exception> {
     let s1;
     let s2;
 

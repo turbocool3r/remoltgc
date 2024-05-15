@@ -183,6 +183,11 @@ use crate::types::MoltInt;
 use crate::types::MoltList;
 use crate::types::VarName;
 use crate::util;
+use alloc::borrow::Cow;
+use alloc::borrow::ToOwned as _;
+use alloc::boxed::Box;
+use alloc::rc::Rc;
+use alloc::string::{String, ToString as _};
 use core::any::Any;
 use core::cell::Ref;
 use core::cell::RefCell;
@@ -191,11 +196,6 @@ use core::fmt::Debug;
 use core::fmt::Display;
 use core::hash::Hash;
 use core::hash::Hasher;
-use alloc::borrow::Cow;
-use alloc::rc::Rc;
-use alloc::boxed::Box;
-use alloc::string::{String, ToString as _};
-use alloc::borrow::ToOwned as _;
 use core::str::FromStr;
 
 //-----------------------------------------------------------------------------
@@ -588,7 +588,9 @@ impl Value {
     /// ```
     pub fn get_bool(arg: &str) -> Result<bool, Exception> {
         let orig = arg;
-        let value: &str = &arg.trim_matches(util::is_ascii_whitespace).to_ascii_lowercase();
+        let value: &str = &arg
+            .trim_matches(util::is_ascii_whitespace)
+            .to_ascii_lowercase();
         match value {
             "1" | "true" | "yes" | "on" => Ok(true),
             "0" | "false" | "no" | "off" => Ok(false),
@@ -803,7 +805,9 @@ impl Value {
     /// ```
     #[cfg(feature = "float")]
     pub fn get_float(arg: &str) -> Result<MoltFloat, Exception> {
-        let arg_trim = arg.trim_matches(util::is_ascii_whitespace).to_ascii_lowercase();
+        let arg_trim = arg
+            .trim_matches(util::is_ascii_whitespace)
+            .to_ascii_lowercase();
 
         match arg_trim.parse::<MoltFloat>() {
             Ok(flt) => Ok(flt),
@@ -854,10 +858,12 @@ impl Value {
     pub fn as_list(&self) -> Result<Ref<'_, MoltList>, Exception> {
         // FIRST, if we have the desired type, return it.
         {
-            let mr = Ref::filter_map(self.inner.data_rep.borrow(), |r| if let DataRep::List(list) = r {
-                Some(list)
-            } else {
-                None
+            let mr = Ref::filter_map(self.inner.data_rep.borrow(), |r| {
+                if let DataRep::List(list) = r {
+                    Some(list)
+                } else {
+                    None
+                }
             });
             if let Ok(list) = mr {
                 return Ok(list);
@@ -869,11 +875,15 @@ impl Value {
         let list = get_list(str)?;
         *self.inner.data_rep.borrow_mut() = DataRep::List(list);
 
-        Ok(Ref::filter_map(self.inner.data_rep.borrow(), |r| if let DataRep::List(list) = r {
-            Some(list)
-        } else {
-            None
-        }).map_err(|_| ()).unwrap())
+        Ok(Ref::filter_map(self.inner.data_rep.borrow(), |r| {
+            if let DataRep::List(list) = r {
+                Some(list)
+            } else {
+                None
+            }
+        })
+        .map_err(|_| ())
+        .unwrap())
     }
 
     /// Tries to return the `Value` as a `MoltList`, parsing the
@@ -1028,10 +1038,12 @@ impl Value {
     {
         // FIRST, if we have the desired type, return it.
         let r = self.inner.data_rep.borrow();
-        if let Ok(r) = Ref::filter_map(r, |r| if let DataRep::Other(other) = r {
-            other.downcast_ref::<T>()
-        } else {
-            None
+        if let Ok(r) = Ref::filter_map(r, |r| {
+            if let DataRep::Other(other) = r {
+                other.downcast_ref::<T>()
+            } else {
+                None
+            }
         }) {
             return Some(r);
         }
@@ -1047,11 +1059,14 @@ impl Value {
         let tval = Box::new(tval);
         *self.inner.data_rep.borrow_mut() = DataRep::Other(tval);
         let r = self.inner.data_rep.borrow();
-        Ref::filter_map(r, |r| if let DataRep::Other(other) = r {
-            other.downcast_ref::<T>()
-        } else {
-            None
-        }).ok()
+        Ref::filter_map(r, |r| {
+            if let DataRep::Other(other) = r {
+                other.downcast_ref::<T>()
+            } else {
+                None
+            }
+        })
+        .ok()
     }
 
     /// Tries to interpret the `Value` as a value of type `T`, parsing the string

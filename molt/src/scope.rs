@@ -13,12 +13,12 @@
 //! `Interp` (or the Molt language itself).
 
 use crate::types::Exception;
-use crate::types::{MoltList, MoltHasher};
+use crate::types::{MoltHasher, MoltList};
 use crate::value::Value;
 use alloc::string::String;
 use alloc::vec::Vec;
-use indexmap::IndexMap;
 use core::fmt::Debug;
+use indexmap::IndexMap;
 
 /// A variable in a `Scope`.  If the variable is defined in the given `Scope`, it is a
 /// `Scalar` or an `Array`; if it is an alias to a variable in a higher scope (e.g., a global)

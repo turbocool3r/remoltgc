@@ -24,19 +24,20 @@ use std::fs;
 /// use remolt::Interp;
 ///
 /// // FIRST, create and initialize the interpreter.
+/// let mut glob_ctx = ();
 /// let mut interp = Interp::new();
 ///
 /// // NOTE: commands can be added to the interpreter here.
 ///
 /// // NEXT, invoke the REPL.
-/// remolt_shell::repl(&mut interp);
+/// remolt_shell::repl(&mut interp, &mut glob_ctx);
 /// ```
-pub fn repl(interp: &mut Interp) {
+pub fn repl<Ctx>(interp: &mut Interp<Ctx>, glob_ctx: &mut Ctx) {
     let mut rl = Editor::<()>::new();
 
     loop {
         let readline = if let Ok(pscript) = interp.scalar("tcl_prompt1") {
-            match interp.eval(pscript.as_str()) {
+            match interp.eval(pscript.as_str(), glob_ctx) {
                 Ok(prompt) => rl.readline(prompt.as_str()),
                 Err(exception) => {
                     println!("{}", exception.value());
@@ -51,7 +52,7 @@ pub fn repl(interp: &mut Interp) {
             Ok(line) => {
                 let line = line.trim();
                 if !line.is_empty() {
-                    match interp.eval(line) {
+                    match interp.eval(line, glob_ctx) {
                         Ok(value) => {
                             rl.add_history_entry(line);
 
@@ -107,22 +108,23 @@ pub fn repl(interp: &mut Interp) {
 /// let args: Vec<String> = env::args().collect();
 ///
 /// // NEXT, create and initialize the interpreter.
+/// let mut glob_ctx = ();
 /// let mut interp = Interp::new();
 ///
 /// // NOTE: commands can be added to the interpreter here.
 ///
 /// // NEXT, evaluate the file, if any.
 /// if args.len() > 1 {
-///     remolt_shell::script(&mut interp, &args[1..]);
+///     remolt_shell::script(&mut interp, &args[1..], &mut glob_ctx);
 /// } else {
 ///     eprintln!("Usage: myshell *filename.tcl");
 /// }
 /// ```
-pub fn script(interp: &mut Interp, args: &[String]) {
+pub fn script<Ctx>(interp: &mut Interp<Ctx>, args: &[String], glob_ctx: &mut Ctx) {
     let arg0 = &args[0];
     let argv = &args[1..];
     match fs::read_to_string(&args[0]) {
-        Ok(script) => execute_script(interp, script, arg0, argv),
+        Ok(script) => execute_script(interp, script, arg0, argv, glob_ctx),
         Err(e) => println!("{}", e),
     }
 }
@@ -139,7 +141,7 @@ pub fn script(interp: &mut Interp, args: &[String]) {
 ///
 /// * The Molt variable `arg0` will be set to the `arg0` value.
 /// * The Molt variable `argv` will be set to the `argv` array as a Molt list.
-fn execute_script(interp: &mut Interp, script: String, arg0: &str, argv: &[String]) {
+fn execute_script<Ctx>(interp: &mut Interp<Ctx>, script: String, arg0: &str, argv: &[String], ctx: &mut Ctx) {
     let argv: MoltList = argv.iter().map(Value::from).collect();
     interp
         .set_scalar("arg0", Value::from(arg0.to_string()))
@@ -148,7 +150,7 @@ fn execute_script(interp: &mut Interp, script: String, arg0: &str, argv: &[Strin
         .set_scalar("argv", Value::from(argv))
         .expect("argv predefined as array!");
 
-    match interp.eval(&script) {
+    match interp.eval(&script, ctx) {
         Ok(_) => (),
         Err(exception) => {
             eprintln!("{}", exception.value());

@@ -10,8 +10,8 @@ use crate::parser::Word;
 use crate::tokenizer::Tokenizer;
 use crate::*;
 
-use alloc::string::String;
 use alloc::format;
+use alloc::string::String;
 
 //------------------------------------------------------------------------------------------------
 // Datum Representation
@@ -262,8 +262,8 @@ const OP_STRINGS: [&str; 36] = [
 // Public API
 
 /// Evaluates an expression and returns its value.
-pub fn expr(interp: &mut Interp, expr: &Value) -> MoltResult {
-    let value = expr_top_level(interp, expr.as_str())?;
+pub fn expr<Ctx>(interp: &mut Interp<Ctx>, expr: &Value, glob_ctx: &mut Ctx) -> MoltResult {
+    let value = expr_top_level(interp, expr.as_str(), glob_ctx)?;
 
     match value.vtype {
         Type::Int => molt_ok!(Value::from(value.int)),
@@ -277,10 +277,10 @@ pub fn expr(interp: &mut Interp, expr: &Value) -> MoltResult {
 // Expression Internals
 
 /// Provides top-level functionality shared by molt_expr_string, molt_expr_int, etc.
-fn expr_top_level(interp: &mut Interp, string: &str) -> DatumResult {
+fn expr_top_level<Ctx>(interp: &mut Interp<Ctx>, string: &str, glob_ctx: &mut Ctx) -> DatumResult {
     let info = &mut ExprInfo::new(string);
 
-    let result = expr_get_value(interp, info, -1);
+    let result = expr_get_value(interp, info, -1, glob_ctx);
 
     match result {
         Ok(value) => {
@@ -310,17 +310,22 @@ fn expr_top_level(interp: &mut Interp, string: &str) -> DatumResult {
 #[allow(clippy::collapsible_if)]
 #[allow(clippy::cognitive_complexity)]
 #[allow(clippy::float_cmp)]
-fn expr_get_value(interp: &mut Interp, info: &mut ExprInfo, prec: i32) -> DatumResult {
+fn expr_get_value<Ctx>(
+    interp: &mut Interp<Ctx>,
+    info: &mut ExprInfo,
+    prec: i32,
+    glob_ctx: &mut Ctx,
+) -> DatumResult {
     // There are two phases to this procedure.  First, pick off an initial value.
     // Then, parse (binary operator, value) pairs until done.
     let mut got_op = false;
-    let mut value = expr_lex(interp, info)?;
+    let mut value = expr_lex(interp, info, glob_ctx)?;
     let mut value2: Datum;
     let mut operator: i32;
 
     if info.token == OPEN_PAREN {
         // Parenthesized sub-expression.
-        value = expr_get_value(interp, info, -1)?;
+        value = expr_get_value(interp, info, -1, glob_ctx)?;
 
         if info.token != CLOSE_PAREN {
             return molt_err!(
@@ -340,7 +345,7 @@ fn expr_get_value(interp: &mut Interp, info: &mut ExprInfo, prec: i32) -> DatumR
         if info.token >= UNARY_MINUS {
             // Process unary operators
             operator = info.token;
-            value = expr_get_value(interp, info, PREC_TABLE[info.token as usize])?;
+            value = expr_get_value(interp, info, PREC_TABLE[info.token as usize], glob_ctx)?;
 
             if info.no_eval == 0 {
                 match operator {
@@ -410,7 +415,7 @@ fn expr_get_value(interp: &mut Interp, info: &mut ExprInfo, prec: i32) -> DatumR
         // This reads the next token, which we expect to be an operator.
         // All we really care about is the token enum; if it's a value, it doesn't matter
         // what the value is.
-        let _ = expr_lex(interp, info)?;
+        let _ = expr_lex(interp, info, glob_ctx)?;
     }
 
     loop {
@@ -458,7 +463,7 @@ fn expr_get_value(interp: &mut Interp, info: &mut ExprInfo, prec: i32) -> DatumR
                 // Short-circuit; we don't care about the next operand, but it must be
                 // syntactically correct.
                 info.no_eval += 1;
-                let _ = expr_get_value(interp, info, PREC_TABLE[operator as usize])?;
+                let _ = expr_get_value(interp, info, PREC_TABLE[operator as usize], glob_ctx)?;
                 info.no_eval -= 1;
 
                 if operator == OR {
@@ -472,31 +477,35 @@ fn expr_get_value(interp: &mut Interp, info: &mut ExprInfo, prec: i32) -> DatumR
                 // this happen, use a precedence one lower than QUESTY when calling
                 // expr_get_value recursively.
                 if value.int != 0 {
-                    value = expr_get_value(interp, info, PREC_TABLE[QUESTY as usize] - 1)?;
+                    value =
+                        expr_get_value(interp, info, PREC_TABLE[QUESTY as usize] - 1, glob_ctx)?;
 
                     if info.token != COLON {
                         return syntax_error(info);
                     }
 
                     info.no_eval += 1;
-                    value2 = expr_get_value(interp, info, PREC_TABLE[QUESTY as usize] - 1)?;
+                    value2 =
+                        expr_get_value(interp, info, PREC_TABLE[QUESTY as usize] - 1, glob_ctx)?;
                     info.no_eval -= 1;
                 } else {
                     info.no_eval += 1;
-                    value2 = expr_get_value(interp, info, PREC_TABLE[QUESTY as usize] - 1)?;
+                    value2 =
+                        expr_get_value(interp, info, PREC_TABLE[QUESTY as usize] - 1, glob_ctx)?;
                     info.no_eval -= 1;
 
                     if info.token != COLON {
                         return syntax_error(info);
                     }
 
-                    value = expr_get_value(interp, info, PREC_TABLE[QUESTY as usize] - 1)?;
+                    value =
+                        expr_get_value(interp, info, PREC_TABLE[QUESTY as usize] - 1, glob_ctx)?;
                 }
             } else {
-                value2 = expr_get_value(interp, info, PREC_TABLE[operator as usize])?;
+                value2 = expr_get_value(interp, info, PREC_TABLE[operator as usize], glob_ctx)?;
             }
         } else {
-            value2 = expr_get_value(interp, info, PREC_TABLE[operator as usize])?;
+            value2 = expr_get_value(interp, info, PREC_TABLE[operator as usize], glob_ctx)?;
         }
 
         if info.token < MULT
@@ -858,7 +867,7 @@ fn expr_get_value(interp: &mut Interp, info: &mut ExprInfo, prec: i32) -> DatumR
 /// and info is updated to point to the next token.  If the token is VALUE, the returned
 /// Datum contains it.
 
-fn expr_lex(interp: &mut Interp, info: &mut ExprInfo) -> DatumResult {
+fn expr_lex<Ctx>(interp: &mut Interp<Ctx>, info: &mut ExprInfo, glob_ctx: &mut Ctx) -> DatumResult {
     // FIRST, skip white space.
     let mut p = info.expr.clone();
 
@@ -901,7 +910,7 @@ fn expr_lex(interp: &mut Interp, info: &mut ExprInfo) -> DatumResult {
         Some('$') => {
             let mut ctx = EvalPtr::from_tokenizer(&p);
             ctx.set_no_eval(info.no_eval > 0);
-            let var_val = parse_and_eval_variable(interp, &mut ctx)?;
+            let var_val = parse_and_eval_variable(interp, &mut ctx, glob_ctx)?;
             info.token = VALUE;
             info.expr = ctx.to_tokenizer();
             if info.no_eval > 0 {
@@ -913,7 +922,7 @@ fn expr_lex(interp: &mut Interp, info: &mut ExprInfo) -> DatumResult {
         Some('[') => {
             let mut ctx = EvalPtr::from_tokenizer(&p);
             ctx.set_no_eval(info.no_eval > 0);
-            let script_val = parse_and_eval_script(interp, &mut ctx)?;
+            let script_val = parse_and_eval_script(interp, &mut ctx, glob_ctx)?;
             info.token = VALUE;
             info.expr = ctx.to_tokenizer();
             if info.no_eval > 0 {
@@ -925,7 +934,7 @@ fn expr_lex(interp: &mut Interp, info: &mut ExprInfo) -> DatumResult {
         Some('"') => {
             let mut ctx = EvalPtr::from_tokenizer(&p);
             ctx.set_no_eval(info.no_eval > 0);
-            let val = parse_and_eval_quoted_word(interp, &mut ctx)?;
+            let val = parse_and_eval_quoted_word(interp, &mut ctx, glob_ctx)?;
             info.token = VALUE;
             info.expr = ctx.to_tokenizer();
             if info.no_eval > 0 {
@@ -1126,7 +1135,7 @@ fn expr_lex(interp: &mut Interp, info: &mut ExprInfo) -> DatumResult {
                     }
                     _ => {
                         info.expr = p;
-                        expr_math_func(interp, info, &str)
+                        expr_math_func(interp, info, &str, glob_ctx)
                     }
                 }
             } else {
@@ -1146,7 +1155,11 @@ fn expr_lex(interp: &mut Interp, info: &mut ExprInfo) -> DatumResult {
 }
 
 // Parses a variable reference.  A bare "$" is an error.
-fn parse_and_eval_variable(interp: &mut Interp, ctx: &mut EvalPtr) -> MoltResult {
+fn parse_and_eval_variable<Ctx>(
+    interp: &mut Interp<Ctx>,
+    ctx: &mut EvalPtr,
+    glob_ctx: &mut Ctx,
+) -> MoltResult {
     // FIRST, skip the '$'
     ctx.skip_char('$');
 
@@ -1161,14 +1174,18 @@ fn parse_and_eval_variable(interp: &mut Interp, ctx: &mut EvalPtr) -> MoltResult
     if ctx.is_no_eval() {
         Ok(Value::empty())
     } else {
-        interp.eval_word(&word)
+        interp.eval_word(&word, glob_ctx)
     }
 }
 
 /// Parses and evaluates an interpolated script in Molt input, i.e., a string beginning with
 /// a "[", returning a MoltResult.  If the no_eval flag is set, returns an empty value.
 /// This is used to handled interpolated scripts in expressions.
-fn parse_and_eval_script(interp: &mut Interp, ctx: &mut EvalPtr) -> MoltResult {
+fn parse_and_eval_script<Ctx>(
+    interp: &mut Interp<Ctx>,
+    ctx: &mut EvalPtr,
+    glob_ctx: &mut Ctx,
+) -> MoltResult {
     // FIRST, skip the '['
     ctx.skip_char('[');
 
@@ -1180,7 +1197,7 @@ fn parse_and_eval_script(interp: &mut Interp, ctx: &mut EvalPtr) -> MoltResult {
     let result = if ctx.is_no_eval() {
         Ok(Value::empty())
     } else {
-        interp.eval_script(&script)
+        interp.eval_script(&script, glob_ctx)
     };
 
     ctx.set_bracket_term(old_flag);
@@ -1200,13 +1217,17 @@ fn parse_and_eval_script(interp: &mut Interp, ctx: &mut EvalPtr) -> MoltResult {
 /// Parses and evaluates a quoted word in Molt input, i.e., a string beginning with
 /// a double quote, returning a MoltResult.  If the no_eval flag is set, returns an empty
 /// value.  This is used to handle double-quoted strings in expressions.
-fn parse_and_eval_quoted_word(interp: &mut Interp, ctx: &mut EvalPtr) -> MoltResult {
+fn parse_and_eval_quoted_word<Ctx>(
+    interp: &mut Interp<Ctx>,
+    ctx: &mut EvalPtr,
+    glob_ctx: &mut Ctx,
+) -> MoltResult {
     let word = parser::parse_quoted_word(ctx)?;
 
     if ctx.is_no_eval() {
         Ok(Value::empty())
     } else {
-        interp.eval_word(&word)
+        interp.eval_word(&word, glob_ctx)
     }
 }
 
@@ -1221,7 +1242,12 @@ fn parse_and_eval_braced_word(ctx: &mut EvalPtr) -> MoltResult {
 
 /// Parses math functions, returning the evaluated value.
 #[allow(clippy::needless_range_loop)]
-fn expr_math_func(interp: &mut Interp, info: &mut ExprInfo, func_name: &str) -> DatumResult {
+fn expr_math_func<Ctx>(
+    interp: &mut Interp<Ctx>,
+    info: &mut ExprInfo,
+    func_name: &str,
+    glob_ctx: &mut Ctx,
+) -> DatumResult {
     // FIRST, is this actually a function?
     // TODO: this does a linear search of the FUNC_TABLE.  Ultimately, it should probably
     // be a hash lookup.  And if we want to allow users to add functions, it should be
@@ -1229,7 +1255,7 @@ fn expr_math_func(interp: &mut Interp, info: &mut ExprInfo, func_name: &str) -> 
     let bfunc = expr_find_func(func_name)?;
 
     // NEXT, get the open paren.
-    let _ = expr_lex(interp, info)?;
+    let _ = expr_lex(interp, info, glob_ctx)?;
 
     if info.token != OPEN_PAREN {
         return syntax_error(info);
@@ -1239,13 +1265,13 @@ fn expr_math_func(interp: &mut Interp, info: &mut ExprInfo, func_name: &str) -> 
     let mut args: [Datum; MAX_MATH_ARGS] = [Datum::none(), Datum::none()];
 
     if bfunc.num_args == 0 {
-        let _ = expr_lex(interp, info)?;
+        let _ = expr_lex(interp, info, glob_ctx)?;
         if info.token != OPEN_PAREN {
             return syntax_error(info);
         }
     } else {
         for i in 0..bfunc.num_args {
-            let arg = expr_get_value(interp, info, -1)?;
+            let arg = expr_get_value(interp, info, -1, glob_ctx)?;
 
             // At present we have no string functions.
             if arg.vtype == Type::String {
@@ -1451,7 +1477,7 @@ fn expr_double_func(args: &[Datum; MAX_MATH_ARGS]) -> DatumResult {
     let arg = &args[0];
     #[cfg(feature = "float")]
     if arg.vtype == Type::Float {
-        return Ok(Datum::float(arg.flt))
+        return Ok(Datum::float(arg.flt));
     }
     Ok(Datum::float(arg.int as MoltFloat))
 }
@@ -1590,16 +1616,16 @@ mod tests {
     fn call_expr() {
         let mut interp = Interp::new();
 
-        let result = expr(&mut interp, &Value::from("1 + 1"));
+        let result = expr(&mut interp, &Value::from("1 + 1"), &mut ());
         assert!(result.is_ok());
         assert_eq!(result.unwrap().as_int().unwrap(), 2);
 
-        let result = expr(&mut interp, &Value::from("1.1 + 1.1"));
+        let result = expr(&mut interp, &Value::from("1.1 + 1.1"), &mut ());
         assert!(result.is_ok());
         let flt: MoltFloat = result.unwrap().as_float().unwrap();
         assert!(near(flt, 2.2));
 
-        let result = expr(&mut interp, &Value::from("[set x foo]"));
+        let result = expr(&mut interp, &Value::from("[set x foo]"), &mut ());
         assert!(result.is_ok());
         assert_eq!(result.unwrap().as_str(), "foo");
     }

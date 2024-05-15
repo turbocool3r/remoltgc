@@ -6,6 +6,7 @@ fn main() {
     let args: Vec<String> = env::args().collect();
 
     // NEXT, create and initialize the interpreter.
+    let mut glob_ctx = ();
     let mut interp = Interp::new();
 
     // NOTE: commands can be added to the interpreter here.
@@ -16,14 +17,14 @@ fn main() {
 
         match subcmd {
             "bench" => {
-                remolt_shell::benchmark(&mut interp, &args[2..]);
+                remolt_shell::benchmark(&mut interp, &args[2..], &mut glob_ctx);
             }
             "shell" => {
                 if args.len() == 2 {
                     println!("Molt {}", env!("CARGO_PKG_VERSION"));
-                    remolt_shell::repl(&mut interp);
+                    remolt_shell::repl(&mut interp, &mut glob_ctx);
                 } else {
-                    remolt_shell::script(&mut interp, &args[2..]);
+                    remolt_shell::script(&mut interp, &args[2..], &mut glob_ctx);
                 }
             }
             "test" => {
